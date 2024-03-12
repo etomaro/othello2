@@ -1,0 +1,17 @@
+1. PYTHONPATHを設定する
+    ・~/othello2まで移動する
+        cd ~/othello2 
+    
+    ・カレントディレクトリを出力
+    $ pwd
+
+    ・PYTHONPATHを設定する
+    $ export PYTHONPATH={pwdで出力されたカレントディレクトリ}
+
+    -> こうすることでothello2をルートディレクトリでモジュールのインポートなどができる
+
+    ・確認作業
+    $ python
+    >>import sys
+    >>os.path 
+        -> 指定したothello2が出力されて設定されていることを確認できる
