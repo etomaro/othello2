@@ -6,7 +6,12 @@
     $ pwd
 
     ・PYTHONPATHを設定する
-    $ export PYTHONPATH={pwdで出力されたカレントディレクトリ}
+    $ vim ~/.bashrc
+    ・.bashrcの中に下記を既述する
+    export PYTHONPATH={pwdで出力されたカレントディレクトリ}
+
+    rebootしても設定が消えないようする
+    $ source ~/.bashrc
 
     -> こうすることでothello2をルートディレクトリでモジュールのインポートなどができる
 
