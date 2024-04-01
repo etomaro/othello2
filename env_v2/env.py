@@ -2,43 +2,39 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Union, Optional
 
-from env_v1.policy import Policy
 
-
-BLACK_PLAYER_ID = 0
-WHITE_PLAYER_ID = 1
-
-@dataclass
-class GameInfo:
-    black_board: int  # 黒石
-    white_board: int  # 白石
-    player_id: Optional[int]  # アクションプレイヤーid
-    actionables: Optional[int]  # 可能なハンド
-    game_state: int  # ゲーム状態
 
 class PlayerId(Enum):
     BLACK_PLAYER_ID = 0
     WHITE_PLAYER_ID = 1
 
 class GameState(Enum):
-    IN_GAME = 0  # ゲーム中
-    WIN_BLACK = 1  # 先行(黒)の勝ち
-    WIN_WHITE = 2  # 後攻(白)の勝ち
-    DRAW = 3  # 引き分け
+    IN_GAME = 0, "ゲーム中"  # ゲーム中
+    WIN_BLACK = 1, "黒(先行)の勝ち"  # 黒(先行)の勝ち
+    WIN_WHITE = 2, "白(後攻)の勝ち"  # 白(後攻)の勝ち
+    DRAW = 3, "引き分け"  # 引き分け
+    
+@dataclass
+class GameInfo:
+    black_board: int  # 黒石
+    white_board: int  # 白石
+    player_id: Optional[int]  # アクションプレイヤーid
+    actionables: Optional[int]  # 可能なハンド
+    game_state: GameState  # ゲーム状態
+    generation: int # 世代(何局目か)
 
 
 class Env2():
-    def __init__(self) -> dict:
+    def __init__(self, is_debug: bool = False, is_debug_detail: bool = False) -> None:
         """
         args:
-            policy_id: 方策アクションid
-            evaluate_id: 評価関数id
-            player_id: 0=先行(黒), 1=後攻(白)
+            is_debug: 毎ターンごとにゲーム情報を出力
+            is_debug_detail: 盤面も出力
         """
-        pass
+        self._is_debug = is_debug 
+        self._is_debug_detail = is_debug_detail
     
-    @staticmethod
-    def get_game_init() -> GameInfo:
+    def get_game_init(self) -> GameInfo:
         """
         状態の初期状態を取得
         """
@@ -51,23 +47,60 @@ class Env2():
             white_board=white_board,
             player_id=PlayerId.BLACK_PLAYER_ID.value,
             actionables=actionables,
-            game_state=GameState.IN_GAME.value
+            game_state=GameState.IN_GAME,
+            generation=0  # 0スタート
         )
+        
+        # ゲーム状態を出力
+        if self._is_debug:
+            self.output_game_info(game_info)
         
         return game_info
     
-    def step(self, black_board: int, white_board: int, player_id: int, position: int) -> GameInfo:
+    @staticmethod
+    def output_game_info(game_info: GameInfo) -> None:
+        """
+        ゲーム状態を出力
+        
+        args
+            game_info
+        """
+        # ゲーム初期状態の出力
+        if game_info.generation == 0:
+            print("\n------------ゲーム開始------------")
+        
+        if game_info.game_state.value[0] == GameState.IN_GAME.value[0]:
+            # ゲーム中
+            out = (
+                f"世代: {game_info.generation}\n"
+                f"黒の石の数: {bin(game_info.black_board).count('1')}\n"
+                f"白の石の数: {bin(game_info.white_board).count('1')}\n"
+                f"アクションプレイヤー: {game_info.player_id}\n"
+                f"ゲーム状態: {game_info.game_state.value[1]}\n"
+                "------------------------"
+            )
+        else:
+            # ゲーム終了時
+            out = (
+                f"[ゲーム終了]\n"
+                f"勝者: {game_info.game_state.value[1]}\n"
+                f"黒の石の数: {bin(game_info.black_board).count('1')}\n"
+                f"白の石の数: {bin(game_info.white_board).count('1')}\n"
+                "------------------------"
+            )
+
+        print(out)
+    
+    def step(self, game_info: GameInfo, action: int) -> GameInfo:
         """
         アクション
-            1. positionに石を置いてひっくり返す
+            1. actionに石を置いてひっくり返す
             2. ゲームの勝敗を判定
             3. 次のアクションプレイヤーidとアクション可能な座標を算出
 
         args:
-            black_board: 黒石の状態
-            white_board: 白石の状態
-            player_id: アクションプレイヤーid
-            position: アクションする石の座標
+            game_info: ゲーム情報
+            action: アクションする石の座標
         returns:
             {
                 black_board: アクション後の黒石の状態
@@ -78,13 +111,15 @@ class Env2():
             }
         """
         
-        # 1. positionに石を置いてひっくり返す
-        next_black_board, next_white_board = self._set_stone(black_board, white_board, player_id, position)
+        # 1. actionに石を置いてひっくり返す
+        next_black_board, next_white_board = self._set_stone(
+            game_info.black_board, game_info.white_board, game_info.player_id, action
+        )
         
         # 2. ゲームの勝敗を判定
         game_state, black_actionables, white_actionables = self._judge_geme_state(next_black_board, next_white_board)
         
-        if game_state != 0:
+        if game_state.value[0] != GameState.IN_GAME.value[0]:
             # ゲームが終了している場合
             
             game_info = GameInfo(
@@ -92,18 +127,23 @@ class Env2():
                 white_board=next_white_board,
                 player_id=None,
                 actionables=None,
-                game_state=game_state
+                game_state=game_state,
+                generation=game_info.generation+1
             )
             
+            # ゲーム情報を出力
+            if self._is_debug:
+                self.output_game_info(game_info)
+        
             return game_info
         
         # 3. 次のアクションプレイヤーidとアクション可能な座標を算出
-        next_player_id = 1 - player_id 
+        next_player_id = 1 - game_info.player_id 
         actionables = black_actionables if next_player_id == PlayerId.BLACK_PLAYER_ID.value else white_actionables
         
         if actionables == 0:
-            # アクションができ兄場合
-            next_player_id = 1 - player_id 
+            # アクションができない場合
+            next_player_id = 1 - next_player_id
             actionables = black_actionables if next_player_id == PlayerId.BLACK_PLAYER_ID.value else white_actionables
 
         game_info = GameInfo(
@@ -111,15 +151,20 @@ class Env2():
             white_board=next_white_board,
             player_id=next_player_id,
             actionables=actionables,
-            game_state=game_state
+            game_state=game_state,
+            generation=game_info.generation+1
         )
+        
+        # ゲーム情報を出力
+        if self._is_debug:
+            self.output_game_info(game_info)
         
         return game_info
     
     @staticmethod
-    def _set_stone(black_board: int, white_board: int, player_id: int, position: int) -> tuple[int, int]:
+    def _set_stone(black_board: int, white_board: int, player_id: int, action: int) -> tuple[int, int]:
         """
-        positionに石を置いてひっくり返す
+        actionに石を置いてひっくり返す
         returns:
             next_black_board:
             next_white_board:
@@ -143,14 +188,14 @@ class Env2():
         mask_left_down = mask_lu_ru_ld_rd & oppo_board
         mask_right_down = mask_lu_ru_ld_rd & oppo_board
         
-        l_rev = (position << 1) & mask_left
-        r_rev = (position >> 1) & mask_right
-        u_rev = (position << 8) & mask_up
-        d_rev = (position >> 8) & mask_down
-        lu_rev = (position << 7) & mask_left_up
-        ru_rev = (position << 9) & mask_right_up
-        ld_rev = (position >> 9) & mask_left_down
-        rd_rev = (position >> 7) & mask_right_down
+        l_rev = (action << 1) & mask_left
+        r_rev = (action >> 1) & mask_right
+        u_rev = (action << 8) & mask_up
+        d_rev = (action >> 8) & mask_down
+        lu_rev = (action << 7) & mask_left_up
+        ru_rev = (action << 9) & mask_right_up
+        ld_rev = (action >> 9) & mask_left_down
+        rd_rev = (action >> 7) & mask_right_down
 
         for i in range(5):
             l_rev |= (l_rev << 1) & mask_left
@@ -179,7 +224,7 @@ class Env2():
         if (rd_rev >> 7) & my_board != 0:
             reverse |= rd_rev
 
-        my_board |= (position | reverse)
+        my_board |= (action | reverse)
         oppo_board ^= reverse
         
         if player_id == PlayerId.BLACK_PLAYER_ID.value:
@@ -189,7 +234,7 @@ class Env2():
         
         return next_black_board, next_white_board
 
-    def _judge_geme_state(self, black_board: int, white_board: int) -> tuple[int, int, int]:
+    def _judge_geme_state(self, black_board: int, white_board: int) -> tuple[GameState, int, int]:
         """
         ゲームの勝敗を判定
         
@@ -204,13 +249,13 @@ class Env2():
         
         if bin(black_actionables).count("1") == 0 and bin(white_actionables).count("1") == 0:
             if black_count < white_count:
-                game_state = GameState.WIN_WHITE.value 
+                game_state = GameState.WIN_WHITE
             elif black_count > white_count:
-                game_state = GameState.WIN_BLACK.value
+                game_state = GameState.WIN_BLACK
             else:
-                game_state = GameState.DRAW.value
+                game_state = GameState.DRAW
         else:
-            game_state = GameState.IN_GAME.value 
+            game_state = GameState.IN_GAME
         
         return game_state, black_actionables, white_actionables
     
@@ -235,6 +280,7 @@ class Env2():
         
         return actionables, next_player_id
     
+    @staticmethod
     def _get_actionables(black_board: int, white_board: int, player_id: int) -> int:
         """
         アクション可能な座標を算出
@@ -375,5 +421,3 @@ class Env2():
 
         return legal
         
-
-env = ENV2(1,1)

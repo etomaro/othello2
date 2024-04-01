@@ -20,3 +20,6 @@
     >>import sys
     >>os.path 
         -> 指定したothello2が出力されて設定されていることを確認できる
+
+2. pytest
+    $ pytest env_v2/tests/test_env.py -s
