@@ -52,5 +52,6 @@ class TestEnv2(unittest.TestCase):
                 if game_info.game_state.value[0] != GameState.IN_GAME.value[0]:
                     print(f"test play count: {play_count} is ok")
                     break
+    
             
             

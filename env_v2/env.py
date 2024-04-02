@@ -379,7 +379,7 @@ class Env2():
         u_oppo = (my_board << 8) & oppo_mask_ud
         d_oppo = (my_board >> 8) & oppo_mask_ud
         lu_oppo = (my_board << 9) & oppo_mask_lu_ru_ld_rd
-        ru_oppo = (black_board << 7) & oppo_mask_lu_ru_ld_rd
+        ru_oppo = (my_board << 7) & oppo_mask_lu_ru_ld_rd
         ld_oppo = (my_board >> 7) & oppo_mask_lu_ru_ld_rd
         rd_oppo = (my_board >> 9) & oppo_mask_lu_ru_ld_rd
 
