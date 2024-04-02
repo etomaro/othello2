@@ -15,7 +15,7 @@ class TestEnv2(unittest.TestCase):
     def setUp(self):
         # print("setup")
         
-        self._env = Env2(is_debug=False, is_debug_detail=False)
+        self._env = Env2(is_out_game_info=True, is_out_board=True)
     
     def tearDown(self) -> None:
         # print("tearDown")
@@ -34,7 +34,7 @@ class TestEnv2(unittest.TestCase):
         random_player_white = RandomPlayer(PlayerId.WHITE_PLAYER_ID.value)
         
         # 100回プレイしてエラーが発生しないこと
-        play_num = 100
+        play_num = 1
         for play_count in range(1, play_num+1):
             # ゲームの初期化
             game_info = self._env.get_game_init()

@@ -25,14 +25,14 @@ class GameInfo:
 
 
 class Env2():
-    def __init__(self, is_debug: bool = False, is_debug_detail: bool = False) -> None:
+    def __init__(self, is_out_game_info: bool = False, is_out_board: bool = False) -> None:
         """
         args:
-            is_debug: 毎ターンごとにゲーム情報を出力
-            is_debug_detail: 盤面も出力
+            is_out_game_info: 毎ターンごとにゲーム情報を出力
+            is_out_board: 盤面も出力
         """
-        self._is_debug = is_debug 
-        self._is_debug_detail = is_debug_detail
+        self._is_out_game_info = is_out_game_info 
+        self._is_out_board = is_out_board
     
     def get_game_init(self) -> GameInfo:
         """
@@ -52,13 +52,12 @@ class Env2():
         )
         
         # ゲーム状態を出力
-        if self._is_debug:
+        if self._is_out_game_info:
             self.output_game_info(game_info)
         
         return game_info
     
-    @staticmethod
-    def output_game_info(game_info: GameInfo) -> None:
+    def output_game_info(self, game_info: GameInfo) -> None:
         """
         ゲーム状態を出力
         
@@ -77,7 +76,6 @@ class Env2():
                 f"白の石の数: {bin(game_info.white_board).count('1')}\n"
                 f"アクションプレイヤー: {game_info.player_id}\n"
                 f"ゲーム状態: {game_info.game_state.value[1]}\n"
-                "------------------------"
             )
         else:
             # ゲーム終了時
@@ -86,10 +84,33 @@ class Env2():
                 f"勝者: {game_info.game_state.value[1]}\n"
                 f"黒の石の数: {bin(game_info.black_board).count('1')}\n"
                 f"白の石の数: {bin(game_info.white_board).count('1')}\n"
-                "------------------------"
             )
 
         print(out)
+        
+        # ボードの状態を表示
+        if self._is_out_board:
+            self._out_board(game_info.black_board, game_info.white_board)
+        
+        print("------------------------")
+    
+    @staticmethod
+    def _out_board(black_board, white_board):
+        black_board = bin(black_board)[2:].zfill(64)
+        white_board = bin(white_board)[2:].zfill(64)
+
+        result = "  1 2 3 4 5 6 7 8"
+        for i in range(64):
+            if i % 8 == 0:
+                result += f"\n{i//8 + 1} "
+            if black_board[i] == "1":
+                result += "○ "
+            elif white_board[i] == "1":
+                result += "● "
+            else:
+                result += "- "
+        
+        print(result + "\n")
     
     def step(self, game_info: GameInfo, action: int) -> GameInfo:
         """
@@ -132,7 +153,7 @@ class Env2():
             )
             
             # ゲーム情報を出力
-            if self._is_debug:
+            if self._is_out_game_info:
                 self.output_game_info(game_info)
         
             return game_info
@@ -156,7 +177,7 @@ class Env2():
         )
         
         # ゲーム情報を出力
-        if self._is_debug:
+        if self._is_out_game_info:
             self.output_game_info(game_info)
         
         return game_info
