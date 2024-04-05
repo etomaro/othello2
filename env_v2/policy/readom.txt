@@ -1,0 +1,8 @@
+・プレイヤーパターン
+
+1. ランダムプレイ: random_player.py
+2. minimax: minimax_player.py
+3. negamax: negamax_player.py
+4. nega_alpha_beta: nega_alpha_beta_player.py
+
+・評価関数

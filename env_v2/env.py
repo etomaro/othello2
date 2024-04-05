@@ -9,9 +9,9 @@ class PlayerId(Enum):
     WHITE_PLAYER_ID = 1
 
 class GameState(Enum):
-    IN_GAME = 0, "ゲーム中"  # ゲーム中
-    WIN_BLACK = 1, "黒(先行)の勝ち"  # 黒(先行)の勝ち
-    WIN_WHITE = 2, "白(後攻)の勝ち"  # 白(後攻)の勝ち
+    WIN_BLACK = 0, "黒(先行)の勝ち"  # 黒(先行)の勝ち
+    WIN_WHITE = 1, "白(後攻)の勝ち"  # 白(後攻)の勝ち
+    IN_GAME = 2, "ゲーム中"  # ゲーム中
     DRAW = 3, "引き分け"  # 引き分け
     
 @dataclass
@@ -21,7 +21,7 @@ class GameInfo:
     player_id: Optional[int]  # アクションプレイヤーid
     actionables: Optional[int]  # 可能なハンド
     game_state: GameState  # ゲーム状態
-    generation: int # 世代(何局目か)
+    generation: int # 世代(何局目か)(石の数で計算する)
 
 
 class Env2():
@@ -48,7 +48,7 @@ class Env2():
             player_id=PlayerId.BLACK_PLAYER_ID.value,
             actionables=actionables,
             game_state=GameState.IN_GAME,
-            generation=0  # 0スタート
+            generation=self._calc_generation(black_board, white_board)  # 0スタート
         )
         
         # ゲーム状態を出力
@@ -56,6 +56,23 @@ class Env2():
             self.output_game_info(game_info)
         
         return game_info
+    
+    @staticmethod
+    def _calc_generation(black_board: int, white_board: int) -> int:
+        """
+        世代数を石の数で計算
+        
+        returns
+          generation: 何世代か。最初の番面を0としてスタート
+        """
+        STONE_NUM_INIT = 4
+        black_count = bin(black_board).count("1")
+        white_count = bin(white_board).count("1")
+        
+        generation = black_count + white_count - STONE_NUM_INIT
+        
+        return generation
+        
     
     def output_game_info(self, game_info: GameInfo) -> None:
         """
@@ -149,7 +166,7 @@ class Env2():
                 player_id=None,
                 actionables=None,
                 game_state=game_state,
-                generation=game_info.generation+1
+                generation=self._calc_generation(next_black_board, next_white_board)
             )
             
             # ゲーム情報を出力
@@ -173,7 +190,7 @@ class Env2():
             player_id=next_player_id,
             actionables=actionables,
             game_state=game_state,
-            generation=game_info.generation+1
+            generation=self._calc_generation(next_black_board, next_white_board)
         )
         
         # ゲーム情報を出力
