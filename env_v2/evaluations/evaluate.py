@@ -5,7 +5,7 @@ from env_v2.env import PlayerId, GameInfo, Env2, GameState
 
 
 
-def simple_evaluate(self, black_board, white_board, base_player_id):
+def simple_evaluate(black_board, white_board, base_player_id):
     """
     葉ノードの評価値を計算(末端ノード)
 
@@ -54,4 +54,4 @@ def simple_evaluate(self, black_board, white_board, base_player_id):
         result += black_edge_count * -10
         result += white_edge_count * 10
 
-        return result 
+    return result 

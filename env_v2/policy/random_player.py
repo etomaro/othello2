@@ -5,9 +5,9 @@ from env_v2.env import PlayerId, GameInfo, Env2
 
 class RandomPlayer():
     def __init__(self, player_id=PlayerId.BLACK_PLAYER_ID.value):
-        self.player_id = PlayerId.BLACK_PLAYER_ID.value if player_id==PlayerId.BLACK_PLAYER_ID.value else PlayerId.WHITE_PLAYER_ID.value
+        self.player_id = player_id
         self._env = Env2()
-    def action(self, game_info: GameInfo) -> GameInfo:
+    def get_action(self, game_info: GameInfo) -> int:
         if game_info.actionables == 0:
             raise Exception("can not action")
         
@@ -21,10 +21,7 @@ class RandomPlayer():
 
         action = random.choice(actionables_list)
         
-        # アクション
-        next_game_info = self._env.step(game_info, action)
-        
-        return next_game_info
+        return action
         
         
         

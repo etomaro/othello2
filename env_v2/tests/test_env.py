@@ -46,7 +46,9 @@ class TestEnv2(unittest.TestCase):
                 else:
                     player = random_player_white
                     
-                game_info = player.action(game_info)
+                action = player.get_action(game_info)
+                
+                game_info = self._env.step(game_info, action)
                 
                 # ゲーム終了か判定
                 if game_info.game_state.value[0] != GameState.IN_GAME.value[0]:

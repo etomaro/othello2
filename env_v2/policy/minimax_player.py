@@ -13,21 +13,21 @@ class MiniMaxPlayer():
             env: Env2
             search_generation: 探索世代数 TODO: のちのちベースノードの世代ごとに探索数を変えるかも。
         """
-        self._env = Env2()
+        self._env = Env2(is_out_game_info=False, is_out_board=False)
         self.player_id = player_id
         self._search_generation = search_generation
         self.MAX_VALUE = float("inf")
         self.MIN_VALUE = float("-inf")
         self.DRAW_VALUE = 0
     
-    def action(self, game_info: GameInfo) -> int:
+    def get_action(self, game_info: GameInfo) -> int:
         """
         node_action: ベストなアクション
         """
         if game_info.actionables == 0:
             raise Exception("can not action")
         
-        node_value, node_action = self._max(game_info, game_info["player_id"], 1)
+        node_value, node_action = self._max(game_info, game_info.player_id, 1)
         
         return node_action
         
@@ -45,15 +45,16 @@ class MiniMaxPlayer():
           node_action: ノードが選択するアクション
         """
         max_node_value = self.MIN_VALUE
+        max_action = None
         
-        for action in game_info["actionables"]:
+        for action in self._get_actionables_list(game_info.actionables):
             # action
             new_game_info = self._env.step(game_info=game_info, action=action)
             """
             judge game state
             ゲームが終了した場合それ以下のノードの探索は行わない(行えない)
             """
-            new_game_state_value = new_game_info["game_state"].value[0]
+            new_game_state_value = new_game_info.game_state.value[0]
             if new_game_state_value == GameState.WIN_BLACK.value[0]:
                 # win black player
                 if base_player_id == PlayerId.BLACK_PLAYER_ID.value:
@@ -76,11 +77,11 @@ class MiniMaxPlayer():
                 if generation >= self._search_generation:
                     # 探索終了のため末端ノードの評価値を取得
                     tmp_node_value = simple_evaluate(
-                        new_game_info["black_board"], new_game_info["white_baord"], base_player_id
+                        new_game_info.black_board, new_game_info.white_board, base_player_id
                     )
                 else:
                     # 探索
-                    if new_game_info["player_id"] == base_player_id:
+                    if new_game_info.player_id == base_player_id:
                         tmp_node_value, _ = self._max(new_game_info, base_player_id, generation+1)
                     else:
                         tmp_node_value, _ = self._mini(new_game_info, base_player_id, generation+1)  
@@ -89,9 +90,13 @@ class MiniMaxPlayer():
             if tmp_node_value == self.MAX_VALUE:
                 return tmp_node_value, action
             
-            if max_node_value < tmp_node_value:
+            if max_action is None:
+                max_action = action
+            elif max_node_value < tmp_node_value:
                 max_node_value = tmp_node_value 
-                max_action = action 
+                max_action = action
+            else:
+                pass
 
         return max_node_value, max_action
             
@@ -108,15 +113,16 @@ class MiniMaxPlayer():
           node_action: ノードが選択するアクション
         """
         min_node_value = self.MAX_VALUE
+        min_action = None
         
-        for action in game_info["actionables"]:
+        for action in self._get_actionables_list(game_info.actionables):
             # action
             new_game_info = self._env.step(game_info=game_info, action=action)
             """
             judge game state
             ゲームが終了した場合それ以下のノードの探索は行わない(行えない)
             """
-            new_game_state_value = new_game_info["game_state"].value[0]
+            new_game_state_value = new_game_info.game_state.value[0]
             if new_game_state_value == GameState.WIN_BLACK.value[0]:
                 # win black player
                 if base_player_id == PlayerId.BLACK_PLAYER_ID.value:
@@ -139,11 +145,11 @@ class MiniMaxPlayer():
                 if generation >= self._search_generation:
                     # 探索終了のため末端ノードの評価値を取得
                     tmp_node_value = simple_evaluate(
-                        new_game_info["black_board"], new_game_info["white_baord"], base_player_id
+                        new_game_info.black_board, new_game_info.white_board, base_player_id
                     )
                 else:
                     # 探索
-                    if new_game_info["player_id"] == base_player_id:
+                    if new_game_info.player_id == base_player_id:
                         tmp_node_value, _ = self._max(new_game_info, base_player_id, generation+1)
                     else:
                         tmp_node_value, _ = self._mini(new_game_info, base_player_id, generation+1)  
@@ -152,11 +158,25 @@ class MiniMaxPlayer():
             if tmp_node_value == self.MIN_VALUE:
                 return tmp_node_value, action
             
-            if min_node_value > tmp_node_value:
+            if min_action is None:
+                min_action = action 
+            elif min_node_value > tmp_node_value:
                 min_node_value = tmp_node_value 
                 min_action = action 
+            else:
+                pass
 
         return min_node_value, min_action
+
+    @staticmethod
+    def _get_actionables_list(actionables: int) -> list:
+        actionables_list = []
+        mask = 0x8000000000000000
+        for i in range(64):
+            if mask & actionables != 0:
+                actionables_list.append(mask)
+            mask = mask >> 1
+        return actionables_list
         
         
         
