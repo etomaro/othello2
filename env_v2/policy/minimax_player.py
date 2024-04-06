@@ -1,11 +1,23 @@
 from typing import Optional, Union
+import time
+from dataclasses import dataclass
 
 from env_v2.env import PlayerId, GameInfo, Env2, GameState
 from env_v2.evaluations.evaluate import simple_evaluate
 
+@dataclass
+class AnalyticsInfo:
+    generation: int  # 世代
+    search_time: float  # 処理時間
+    search_num: int  # 探索数(カットしたノードは含まない)
+    search_all_num: int  # 全探索数
+    
 
 class MiniMaxPlayer():
-    def __init__(self, player_id: int = PlayerId.BLACK_PLAYER_ID.value, search_generation: int = 4) -> None:
+    def __init__(
+        self, player_id: int = PlayerId.BLACK_PLAYER_ID.value,
+        search_generation: int = 4
+    ) -> None:
         """
         MiniMax法でアクションを行う
         
@@ -20,34 +32,61 @@ class MiniMaxPlayer():
         self.MIN_VALUE = float("-inf")
         self.DRAW_VALUE = 0
     
-    def get_action(self, game_info: GameInfo) -> int:
+    def get_action(self, game_info: GameInfo) -> tuple[int, AnalyticsInfo]:
         """
         node_action: ベストなアクション
         """
         if game_info.actionables == 0:
             raise Exception("can not action")
         
-        node_value, node_action = self._max(game_info, game_info.player_id, 1)
+        start_time = time.time()  # 処理時間を計算
         
-        return node_action
+        analytics_info = AnalyticsInfo(
+            generation = game_info.generation,
+            search_time = None,
+            search_num = 0,
+            search_all_num = 0
+        )
+        
+        # アクションを選択
+        node_value, node_action = self._max(
+            game_info=game_info, base_player_id=game_info.player_id, generation=1,
+            analytics_info=analytics_info
+        )
+        
+        analytics_info.search_time = time.time() - start_time
+        
+        return node_action, analytics_info
         
         
-    def _max(self, game_info: GameInfo, base_player_id: int, generation: int) -> tuple[int, int]:
+    def _max(
+        self, game_info: GameInfo, base_player_id: int, generation: int,
+       analytics_info: AnalyticsInfo
+    ) -> tuple[int, int]:
         """
         args:
           env: Env2
           game_info: 現時点のベースノードのゲーム状態
           base_player_id: 探索が始まったベースノードのアクションPlayerId
           generation: ベースノードからの世代数(ベースノードを0とする)
+          analytics_info
         
         returns:
           node_value: ノードの評価値
           node_action: ノードが選択するアクション
         """
+        
+        # 探索数をカウント
+        analytics_info.search_all_num += bin(game_info.actionables).count("1")
+        
         max_node_value = self.MIN_VALUE
         max_action = None
         
         for action in self._get_actionables_list(game_info.actionables):
+            
+            # 実際の探索数をカウント
+            analytics_info.search_num += 1
+            
             # action
             new_game_info = self._env.step(game_info=game_info, action=action)
             """
@@ -82,9 +121,9 @@ class MiniMaxPlayer():
                 else:
                     # 探索
                     if new_game_info.player_id == base_player_id:
-                        tmp_node_value, _ = self._max(new_game_info, base_player_id, generation+1)
+                        tmp_node_value, _ = self._max(new_game_info, base_player_id, generation+1, analytics_info)
                     else:
-                        tmp_node_value, _ = self._mini(new_game_info, base_player_id, generation+1)  
+                        tmp_node_value, _ = self._mini(new_game_info, base_player_id, generation+1, analytics_info)  
 
             # 更新
             if tmp_node_value == self.MAX_VALUE:
@@ -92,6 +131,7 @@ class MiniMaxPlayer():
             
             if max_action is None:
                 max_action = action
+                max_node_value = tmp_node_value 
             elif max_node_value < tmp_node_value:
                 max_node_value = tmp_node_value 
                 max_action = action
@@ -100,7 +140,9 @@ class MiniMaxPlayer():
 
         return max_node_value, max_action
             
-    def _mini(self, game_info: GameInfo, base_player_id: int, generation: int) -> tuple[int, int]:
+    def _mini(
+        self, game_info: GameInfo, base_player_id: int, generation: int, analytics_info: AnalyticsInfo
+    ) -> tuple[int, int]:
         """
         args:
           env: Env2
@@ -112,10 +154,16 @@ class MiniMaxPlayer():
           node_value: ノードの評価値
           node_action: ノードが選択するアクション
         """
+        # 探索数をカウント
+        analytics_info.search_all_num += bin(game_info.actionables).count("1")
+
         min_node_value = self.MAX_VALUE
         min_action = None
         
         for action in self._get_actionables_list(game_info.actionables):
+            # 実際の探索数をカウント
+            analytics_info.search_num += 1
+
             # action
             new_game_info = self._env.step(game_info=game_info, action=action)
             """
@@ -150,9 +198,9 @@ class MiniMaxPlayer():
                 else:
                     # 探索
                     if new_game_info.player_id == base_player_id:
-                        tmp_node_value, _ = self._max(new_game_info, base_player_id, generation+1)
+                        tmp_node_value, _ = self._max(new_game_info, base_player_id, generation+1, analytics_info)
                     else:
-                        tmp_node_value, _ = self._mini(new_game_info, base_player_id, generation+1)  
+                        tmp_node_value, _ = self._mini(new_game_info, base_player_id, generation+1, analytics_info)  
 
             # 更新
             if tmp_node_value == self.MIN_VALUE:
