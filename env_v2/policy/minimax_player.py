@@ -179,18 +179,18 @@ class MiniMaxPlayer():
                 # win black player
                 if base_player_id == PlayerId.BLACK_PLAYER_ID.value:
                     # win base player. 探索終了
-                    tmp_node_value = self.MIN_VALUE 
+                    tmp_node_value = self.MAX_VALUE 
                 else:
                     # win opponent base player.
-                    tmp_node_value = self.MAX_VALUE
+                    tmp_node_value = self.MIN_VALUE
             elif new_game_state_value == GameState.WIN_WHITE.value[0]:
                 # win white plyaer
                 if base_player_id == PlayerId.WHITE_PLAYER_ID.value:
                     # win base player. 探索終了
-                    tmp_node_value = self.MIN_VALUE 
+                    tmp_node_value = self.MAX_VALUE 
                 else:
                     # win opponent base player.
-                    tmp_node_value = self.MAX_VALUE
+                    tmp_node_value = self.MIN_VALUE
             elif new_game_state_value == GameState.DRAW.value[0]:
                 tmp_node_value = self.DRAW_VALUE
             else:
