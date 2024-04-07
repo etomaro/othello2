@@ -2,6 +2,59 @@ from typing import Optional, Union
 
 from env_v2.env import PlayerId, GameInfo, Env2, GameState
 
+class HuristicEvaluate:
+    # オセロの標準的なヒューリスティック評価関数
+    EVALUATE_NAME = "HuristicEvaluate"
+
+    @staticmethod
+    def evaluate(black_board, white_board, base_player_id):
+        """
+        葉ノードの評価値を計算(末端ノード)
+        
+        100  -25   10    5    5   10  -25  100
+        -25  -25    2    2    2    2  -25  -25
+        10    2     5    1    1    5    2   10
+        5     2     1    2    2    1    2    5
+        5     2     1    2    2    1    2    5
+        10    2     5    1    1    5    2   10
+        -25  -25    2    2    2    2  -25  -25
+        100  -25   10    5    5   10  -25  100
+        """
+        
+        EVALUATE_MASK_NOT25 = 0x42c300000000c342
+        EVALUATE_MASK_1 = 0x0000182424180000
+        EVALUATE_MASK_2 = 0x003c425a5a423c00
+        EVALUATE_MASK_5 = 0x1800248181240018
+        EVALUATE_MASK_10 = 0x2400810000810024
+        EVALUATE_MASK_100 = 0x8100000000000081
+
+        black_result, white_result = 0, 0
+        
+        black_result += bin(EVALUATE_MASK_NOT25 & black_board).count("1") * -25
+        white_result += bin(EVALUATE_MASK_NOT25 & white_board).count("1") * -25
+
+        black_result += bin(EVALUATE_MASK_1 & black_board).count("1") * 1
+        white_result += bin(EVALUATE_MASK_1 & white_board).count("1") * 1
+
+        black_result += bin(EVALUATE_MASK_2 & black_board).count("1") * 2
+        white_result += bin(EVALUATE_MASK_2 & white_board).count("1") * 2
+
+        black_result += bin(EVALUATE_MASK_5 & black_board).count("1") * 5
+        white_result += bin(EVALUATE_MASK_5 & white_board).count("1") * 5
+
+        black_result += bin(EVALUATE_MASK_10 & black_board).count("1") * 10
+        white_result += bin(EVALUATE_MASK_10 & white_board).count("1") * 10
+
+        black_result += bin(EVALUATE_MASK_100 & black_board).count("1") * 100
+        white_result += bin(EVALUATE_MASK_100 & white_board).count("1") * 100
+        
+        # 評価値を計算
+        if base_player_id == PlayerId.BLACK_PLAYER_ID.value:
+            result = black_result - white_result
+        else:
+            result = white_result - black_result
+
+        return result 
 
 class SimpleEvaluateV2:
     EVALUATE_NAME = "SIMPLE_EVALUATE_V2"
