@@ -3,7 +3,7 @@ import time
 from dataclasses import dataclass
 
 from env_v2.env import PlayerId, GameInfo, Env2, GameState
-from env_v2.evaluations.evaluate import simple_evaluate
+from env_v2.evaluations.evaluate import SimpleEvaluate
 
 @dataclass
 class AnalyticsInfo:
@@ -14,20 +14,24 @@ class AnalyticsInfo:
     
 
 class MiniMaxPlayer():
+    MODEL_NAME = "MINIMAX"
     def __init__(
         self, player_id: int = PlayerId.BLACK_PLAYER_ID.value,
-        search_generation: int = 4
+        search_depth: int = 4,
+        evaluate_model=SimpleEvaluate
     ) -> None:
         """
         MiniMax法でアクションを行う
         
         args:
             env: Env2
-            search_generation: 探索世代数 TODO: のちのちベースノードの世代ごとに探索数を変えるかも。
+            search_depth: 探索世代数 TODO: のちのちベースノードの世代ごとに探索数を変えるかも。
         """
         self._env = Env2(is_out_game_info=False, is_out_board=False)
         self.player_id = player_id
-        self._search_generation = search_generation
+        self.search_depth = search_depth
+        self.evaluate_model = evaluate_model
+        self.evaluate = evaluate_model.evaluate
         self.MAX_VALUE = float("inf")
         self.MIN_VALUE = float("-inf")
         self.DRAW_VALUE = 0
@@ -50,7 +54,7 @@ class MiniMaxPlayer():
         
         # アクションを選択
         node_value, node_action = self._max(
-            game_info=game_info, base_player_id=game_info.player_id, generation=1,
+            game_info=game_info, base_player_id=game_info.player_id, depth=1,
             analytics_info=analytics_info
         )
         
@@ -60,7 +64,7 @@ class MiniMaxPlayer():
         
         
     def _max(
-        self, game_info: GameInfo, base_player_id: int, generation: int,
+        self, game_info: GameInfo, base_player_id: int, depth: int,
        analytics_info: AnalyticsInfo
     ) -> tuple[int, int]:
         """
@@ -68,7 +72,7 @@ class MiniMaxPlayer():
           env: Env2
           game_info: 現時点のベースノードのゲーム状態
           base_player_id: 探索が始まったベースノードのアクションPlayerId
-          generation: ベースノードからの世代数(ベースノードを0とする)
+          depth: ベースノードからの世代数(ベースノードを0とする)
           analytics_info
         
         returns:
@@ -113,17 +117,17 @@ class MiniMaxPlayer():
             elif new_game_state_value == GameState.DRAW.value[0]:
                 tmp_node_value = self.DRAW_VALUE
             else:
-                if generation >= self._search_generation:
+                if depth >= self.search_depth:
                     # 探索終了のため末端ノードの評価値を取得
-                    tmp_node_value = simple_evaluate(
+                    tmp_node_value = self.evaluate(
                         new_game_info.black_board, new_game_info.white_board, base_player_id
                     )
                 else:
                     # 探索
                     if new_game_info.player_id == base_player_id:
-                        tmp_node_value, _ = self._max(new_game_info, base_player_id, generation+1, analytics_info)
+                        tmp_node_value, _ = self._max(new_game_info, base_player_id, depth+1, analytics_info)
                     else:
-                        tmp_node_value, _ = self._mini(new_game_info, base_player_id, generation+1, analytics_info)  
+                        tmp_node_value, _ = self._mini(new_game_info, base_player_id, depth+1, analytics_info)  
 
             # 更新
             if tmp_node_value == self.MAX_VALUE:
@@ -141,14 +145,14 @@ class MiniMaxPlayer():
         return max_node_value, max_action
             
     def _mini(
-        self, game_info: GameInfo, base_player_id: int, generation: int, analytics_info: AnalyticsInfo
+        self, game_info: GameInfo, base_player_id: int, depth: int, analytics_info: AnalyticsInfo
     ) -> tuple[int, int]:
         """
         args:
           env: Env2
           game_info: 現時点のベースノードのゲーム状態
           base_player_id: 探索が始まったベースノードのアクションPlayerId
-          generation: ベースノードからの世代数(ベースノードを0とする)
+          depth: ベースノードからの世代数(ベースノードを0とする)
         
         returns:
           node_value: ノードの評価値
@@ -190,17 +194,17 @@ class MiniMaxPlayer():
             elif new_game_state_value == GameState.DRAW.value[0]:
                 tmp_node_value = self.DRAW_VALUE
             else:
-                if generation >= self._search_generation:
+                if depth >= self.search_depth:
                     # 探索終了のため末端ノードの評価値を取得
-                    tmp_node_value = simple_evaluate(
+                    tmp_node_value = self.evaluate(
                         new_game_info.black_board, new_game_info.white_board, base_player_id
                     )
                 else:
                     # 探索
                     if new_game_info.player_id == base_player_id:
-                        tmp_node_value, _ = self._max(new_game_info, base_player_id, generation+1, analytics_info)
+                        tmp_node_value, _ = self._max(new_game_info, base_player_id, depth+1, analytics_info)
                     else:
-                        tmp_node_value, _ = self._mini(new_game_info, base_player_id, generation+1, analytics_info)  
+                        tmp_node_value, _ = self._mini(new_game_info, base_player_id, depth+1, analytics_info)  
 
             # 更新
             if tmp_node_value == self.MIN_VALUE:

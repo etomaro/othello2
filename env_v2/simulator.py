@@ -2,32 +2,98 @@
 ゲームを対戦させる
 """
 import time
+import csv
+from dataclasses import dataclass
+from typing import Union, Optional
+import os
 
 from env_v2.env import Env2, GameInfo, PlayerId, GameState
 from env_v2.policy.random_player import RandomPlayer
 from env_v2.policy.minimax_player import MiniMaxPlayer, AnalyticsInfo
+from env_v2.evaluations.evaluate import SimpleEvaluate
 
 
-env = Env2(is_out_game_info=True, is_out_board=True)
-random_player_black = MiniMaxPlayer(PlayerId.BLACK_PLAYER_ID.value, search_generation=5)
-random_player_white = MiniMaxPlayer(PlayerId.WHITE_PLAYER_ID.value, search_generation=6)
+@dataclass
+class DetailReportRow:
+    # 分析データ
+    generation: int 
+    black_board: int
+    white_board: int
+    action: Optional[int]
+    search_time: Optional[float]
+    search_all_num: Optional[int]
+    search_num: Optional[int]
+    search_cut_num: Optional[int]
 
-
-def analytics(analytics_list: list[AnalyticsInfo]):
+def analytics(
+    detail_report_rows: list[DetailReportRow], last_game_info: GameInfo,
+    black_model_name: str, white_model_name: str,
+    black_search_depth: int, white_search_depth: int,
+    black_evaluate_name: str, white_evaluate_name: str
+):
     """
-    ゲーム結果を分析する
-      1. 1アクションの探索時間
-      2. 1アクションの探索ノード数
+    ゲーム結果を分析する(ターミナルに出力とcsvとして保存)
+      [csvとして保存]
+        1. 概要レポート
+          ファイル名: summary_{BLACK_MODEL_NAME}_{DEPTH}_{EVALUATE_NAME}_vs_{WHITE_MODEL_NAME}_{DEPTH}_{EVALUATE_NAME}.csv
+          header: 
+            勝者
+            黒の石の数
+            白の石の数
+            最大の探索時間の世代
+            最大の探索時間
+            最大の全探索数
+            最大の実際の探索数
+          row key:
+            ※ 1行のみ
+        2. 詳細レポート
+          ファイル名: detail_{BLACK_MODEL_NAME}_{DEPTH}_{EVALUATE_NAME}_vs_{WHITE_MODEL_NAME}_{DEPTH}_{EVALUATE_NAME}.csv
+          header: 
+            世代
+            黒のボード
+            白のボード
+            アクション: ※ 最後の状態はアクションなし(空文字)
+            探索時間
+            全探索数
+            実際の探索数
+            カットした探索数
+          row key:
+            世代(0-59)
     """
+    # ターミナル出力用
     out = ""
     out_summary = "[分析結果-概要]\n"
     out_detail = "[分析結果-詳細]\n"
     
-    max_search_time_info = None
-    max_search_all_num_info = None
-    max_search_num_info = None
+    # 概要レポート
+    # ファイル名: summary_{BLACK_MODEL_NAME}_{DEPTH}_{EVALUATE_NAME}_vs_{WHITE_MODEL_NAME}_{DEPTH}_{EVALUATE_NAME}.csv
+    summary_file_name =\
+        f"summary_{black_model_name}_{black_search_depth}_{black_evaluate_name}_vs_"\
+        f"{white_model_name}_{white_search_depth}_{white_evaluate_name}.csv"
+    summary_file_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), "report/"+summary_file_name)
+    summary_header = [
+        "勝者", "黒の石の数", "白の石の数",
+        "最大の探索時間の世代", "最大の探索時間", "最大の全探索数", "最大の実際の探索数"
+    ]
     
-    for analytics_info in analytics_list:
+    # 詳細レポート
+    # ファイル名: detail_{BLACK_MODEL_NAME}_{DEPTH}_{EVALUATE_NAME}_vs_{WHITE_MODEL_NAME}_{DEPTH}_{EVALUATE_NAME}.csv
+    detail_file_name =\
+        f"detail_{black_model_name}_{black_search_depth}_{black_evaluate_name}_vs_"\
+        f"{white_model_name}_{white_search_depth}_{white_evaluate_name}.csv"
+    detail_file_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), "report/"+detail_file_name)
+    detail_header = [
+        "世代", "黒のボード", "白のボード", "アクション",
+        "探索時間", "全探索数", "実際の探索数", "カットした探索数"
+    ]
+
+    max_search_time_info = None
+    
+    for analytics_info in detail_report_rows:
+        # analyticsがない場合はスキップ(最後の盤面など)
+        if analytics_info.search_time is None:
+            continue
+
         out_detail += (
             f"世代: {analytics_info.generation}\n"
             f"探索時間: {analytics_info.search_time}\n"
@@ -40,58 +106,118 @@ def analytics(analytics_list: list[AnalyticsInfo]):
         if max_search_time_info is None or\
             max_search_time_info.search_time < analytics_info.search_time:
             max_search_time_info = analytics_info
-        # 全探索数の最大値
-        if max_search_all_num_info is None or\
-            max_search_all_num_info.search_all_num < analytics_info.search_all_num:
-            max_search_all_num_info = analytics_info
-        # 実際の探索数の最大値
-        if max_search_num_info is None or\
-            max_search_num_info.search_num < analytics_info.search_num:
-            max_search_num_info = analytics_info
     
     out_summary += (
-        f"・最大の探索時間\n"
+        f"・最大の探索時間のゲーム情報\n"
         f"世代: {max_search_time_info.generation}\n"
-        f"探索時間: {max_search_time_info.search_time}\n\n"
-    )
-    out_summary += (
-        f"・最大の全探索数(カットしたノードも含む)\n"
-        f"世代: {max_search_all_num_info.generation}\n"
-        f"全探索数(カットしたノードも含む): {max_search_all_num_info.search_all_num}\n\n"
-    )
-    out_summary += (
-        f"・最大の実際の探索数\n"
-        f"世代: {max_search_num_info.generation}\n"
-        f"探索時間: {max_search_num_info.search_num}\n\n"
+        f"探索時間: {max_search_time_info.search_time}\n"
+        f"全探索数(カットしたノードも含む): {max_search_time_info.search_all_num}\n"
+        f"実際の探索数: {max_search_time_info.search_num}\n\n"
     )
     
+    # ターミナル出力
     out += out_summary + "\n"
     out += out_detail
     out += "------------------------"
     print(out)
+    
+    # レポート作成
+    
+    summary_row = [
+        last_game_info.game_state.value[1], bin(last_game_info.black_board).count("1"),
+        bin(last_game_info.white_board).count("1"),
+        max_search_time_info.generation, max_search_time_info.search_time,
+        max_search_time_info.search_all_num, max_search_time_info.search_num
+    ]
+    with open(summary_file_path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(summary_header)  # header
+        writer.writerow(summary_row)
+            
+    with open(detail_file_path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(detail_header)
+        for detail_report_row in detail_report_rows:
+            writer.writerow(
+                [
+                    detail_report_row.generation,
+                    detail_report_row.black_board,
+                    detail_report_row.white_board,
+                    detail_report_row.action,
+                    detail_report_row.search_time,
+                    detail_report_row.search_all_num,
+                    detail_report_row.search_num,
+                    detail_report_row.search_cut_num
+                ]
+            )
+
+# simulation
+env = Env2(is_out_game_info=True, is_out_board=True)
+player_black = MiniMaxPlayer(
+    PlayerId.BLACK_PLAYER_ID.value, search_depth=4,
+    evaluate_model=SimpleEvaluate
+)
+player_white = MiniMaxPlayer(
+    PlayerId.WHITE_PLAYER_ID.value, search_depth=4,
+    evaluate_model=SimpleEvaluate
+)
 
 play_num = 1
 for play_count in range(1, play_num+1):
     # ゲームの初期化
     game_info = env.get_game_init()
-    analytics_list = []
+    detail_report_rows = []
+    # analytics_list = []
+    # game_info_list = [game_info]
     
     while True:
         # アクションプレイヤーの選択
-        if game_info.player_id == random_player_black.player_id:
-            player = random_player_black
+        if game_info.player_id == player_black.player_id:
+            player = player_black
         else:
-            player = random_player_white
-            
-        action, analytics_info = player.get_action(game_info)
-        analytics_list.append(analytics_info)
+            player = player_white
         
+        # アクションを選択する
+        action, analytics_info = player.get_action(game_info)
+        detail_report_row = DetailReportRow(
+            generation=game_info.generation,
+            black_board=game_info.black_board,
+            white_board=game_info.white_board,
+            action=action,
+            search_time=analytics_info.search_time,
+            search_all_num=analytics_info.search_all_num,
+            search_num=analytics_info.search_num,
+            search_cut_num=analytics_info.search_all_num-analytics_info.search_num
+        )
+        detail_report_rows.append(detail_report_row)
+        
+        # action
         game_info = env.step(game_info, action)
         
         # ゲーム終了か判定
         if game_info.game_state.value[0] != GameState.IN_GAME.value[0]:
+            detail_report_row = DetailReportRow(
+                generation=game_info.generation,
+                black_board=game_info.black_board,
+                white_board=game_info.white_board,
+                action=None,
+                search_time=None,
+                search_all_num=None,
+                search_num=None,
+                search_cut_num=None
+            )
+            detail_report_rows.append(detail_report_row)
             break
     
     # ゲーム結果を出力
-    analytics(analytics_list)
+    analytics(
+        detail_report_rows=detail_report_rows,
+        last_game_info=game_info,
+        black_model_name=player_black.MODEL_NAME,
+        white_model_name=player_white.MODEL_NAME,
+        black_search_depth=player_black.search_depth,
+        white_search_depth=player_white.search_depth,
+        black_evaluate_name=player_black.evaluate_model.EVALUATE_NAME,
+        white_evaluate_name=player_white.evaluate_model.EVALUATE_NAME
+    )
     env.output_game_info(game_info)
