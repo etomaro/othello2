@@ -27,6 +27,7 @@ class DetailReportRow:
 
 def analytics(
     detail_report_rows: list[DetailReportRow], last_game_info: GameInfo,
+    game_time: float,
     black_model_name: str, white_model_name: str,
     black_search_depth: int, white_search_depth: int,
     black_evaluate_name: str, white_evaluate_name: str
@@ -73,7 +74,8 @@ def analytics(
     summary_file_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), "report/"+summary_file_name)
     summary_header = [
         "勝者", "黒の石の数", "白の石の数",
-        "最大の探索時間の世代", "最大の探索時間", "最大の全探索数", "最大の実際の探索数"
+        "最大の探索時間の世代", "最大の探索時間", "最大の全探索数", "最大の実際の探索数",
+        "ゲームにかかった時間"
     ]
     
     # 詳細レポート
@@ -127,7 +129,8 @@ def analytics(
         last_game_info.game_state.value[1], bin(last_game_info.black_board).count("1"),
         bin(last_game_info.white_board).count("1"),
         max_search_time_info.generation, max_search_time_info.search_time,
-        max_search_time_info.search_all_num, max_search_time_info.search_num
+        max_search_time_info.search_all_num, max_search_time_info.search_num,
+        game_time
     ]
     with open(summary_file_path, "w", newline="") as f:
         writer = csv.writer(f)
@@ -168,6 +171,8 @@ for play_count in range(1, play_num+1):
     game_info = env.get_game_init()
     detail_report_rows = []
     
+    # 1ゲームにかかる時間を計測
+    start_game_time = time.time()
     while True:
         # アクションプレイヤーの選択
         if game_info.player_id == player_black.player_id:
@@ -211,6 +216,7 @@ for play_count in range(1, play_num+1):
     analytics(
         detail_report_rows=detail_report_rows,
         last_game_info=game_info,
+        game_time=time.time() - start_game_time,
         black_model_name=player_black.MODEL_NAME,
         white_model_name=player_white.MODEL_NAME,
         black_search_depth=player_black.search_depth,
