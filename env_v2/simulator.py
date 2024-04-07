@@ -167,8 +167,6 @@ for play_count in range(1, play_num+1):
     # ゲームの初期化
     game_info = env.get_game_init()
     detail_report_rows = []
-    # analytics_list = []
-    # game_info_list = [game_info]
     
     while True:
         # アクションプレイヤーの選択
