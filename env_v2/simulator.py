@@ -10,7 +10,7 @@ import os
 from env_v2.env import Env2, GameInfo, PlayerId, GameState
 from env_v2.policy.random_player import RandomPlayer
 from env_v2.policy.minimax_player import MiniMaxPlayer, AnalyticsInfo
-from env_v2.evaluations.evaluate import SimpleEvaluate
+from env_v2.evaluations.evaluate import SimpleEvaluate, SimpleEvaluateV2
 
 
 @dataclass
@@ -158,7 +158,7 @@ def analytics(
 env = Env2(is_out_game_info=True, is_out_board=True)
 player_black = MiniMaxPlayer(
     PlayerId.BLACK_PLAYER_ID.value, search_depth=6,
-    evaluate_model=SimpleEvaluate
+    evaluate_model=SimpleEvaluateV2
 )
 player_white = MiniMaxPlayer(
     PlayerId.WHITE_PLAYER_ID.value, search_depth=6,
