@@ -155,7 +155,7 @@ class MiniMaxPlayer():
             print(
                 f"generation: {game_info.generation}\n"
                 f"max_node_value: {max_node_value}\n"
-                f"max_action: {max_action}\n"
+                f"max_action: {self._env.change_action_int_to_matrix(max_action)}\n"
             )
         return max_node_value, max_action
             
@@ -238,7 +238,7 @@ class MiniMaxPlayer():
             print(
                 f"generation: {game_info.generation}\n"
                 f"min_node_value: {min_node_value}\n"
-                f"min_action: {min_action}\n"
+                f"min_action: {self._env.change_action_int_to_matrix(min_action)}\n"
             )
 
         return min_node_value, min_action

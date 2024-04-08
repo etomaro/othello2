@@ -33,6 +33,21 @@ class Env2():
         """
         self._is_out_game_info = is_out_game_info 
         self._is_out_board = is_out_board
+        
+    @staticmethod
+    def change_action_int_to_matrix(action: int) -> str:
+        """
+        (行,列)の形でアクションを表示する
+        
+        args:
+          action: int
+        """
+        action = bin(action)[2:].zfill(64)
+        action_index = action.index("1")
+        row = ((action_index) // 8) + 1
+        column = (action_index % 8) + 1
+        
+        return f"({row}, {column})"
     
     def get_game_init(self) -> GameInfo:
         """
@@ -72,7 +87,7 @@ class Env2():
         generation = black_count + white_count - STONE_NUM_INIT
         
         return generation
-        
+
     
     def output_game_info(self, game_info: GameInfo) -> None:
         """
