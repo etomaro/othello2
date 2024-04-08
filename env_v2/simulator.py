@@ -6,6 +6,8 @@ import csv
 from dataclasses import dataclass
 from typing import Union, Optional
 import os
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from env_v2.env import Env2, GameInfo, PlayerId, GameState
 from env_v2.policy.random_player import RandomPlayer
@@ -67,10 +69,11 @@ def analytics(
     out_detail = "[分析結果-詳細]\n"
     
     # 概要レポート
-    # ファイル名: summary_{BLACK_MODEL_NAME}_{DEPTH}_{EVALUATE_NAME}_vs_{WHITE_MODEL_NAME}_{DEPTH}_{EVALUATE_NAME}.csv
+    date_now_str = datetime.now(tz=ZoneInfo("Asia/Tokyo")).strftime("%Y%m%d")
+    # ファイル名: summary_{BLACK_MODEL_NAME}_{DEPTH}_{EVALUATE_NAME}_vs_{WHITE_MODEL_NAME}_{DEPTH}_{EVALUATE_NAME}_{作成日時(yyyymmdd(JS))}.csv
     summary_file_name =\
         f"summary_{black_model_name}_{black_search_depth}_{black_evaluate_name}_vs_"\
-        f"{white_model_name}_{white_search_depth}_{white_evaluate_name}.csv"
+        f"{white_model_name}_{white_search_depth}_{white_evaluate_name}_{date_now_str}.csv"
     summary_folder = f"report/summary/{black_model_name}_{black_search_depth}_{white_model_name}_{white_search_depth}/"
     summary_folder_path = os.path.abspath(os.path.dirname(__file__)) + "/" + summary_folder
     # フォルダが存在しない場合作成
@@ -84,10 +87,10 @@ def analytics(
     ]
     
     # 詳細レポート
-    # ファイル名: detail_{BLACK_MODEL_NAME}_{DEPTH}_{EVALUATE_NAME}_vs_{WHITE_MODEL_NAME}_{DEPTH}_{EVALUATE_NAME}.csv
+    # ファイル名: detail_{BLACK_MODEL_NAME}_{DEPTH}_{EVALUATE_NAME}_vs_{WHITE_MODEL_NAME}_{DEPTH}_{EVALUATE_NAME}_{作成日時(yyyymmdd(JS))}.csv
     detail_file_name =\
         f"detail_{black_model_name}_{black_search_depth}_{black_evaluate_name}_vs_"\
-        f"{white_model_name}_{white_search_depth}_{white_evaluate_name}.csv"
+        f"{white_model_name}_{white_search_depth}_{white_evaluate_name}_{date_now_str}.csv"
     detail_folder = f"report/detail/{black_model_name}_{black_search_depth}_{white_model_name}_{white_search_depth}/"
     detail_folder_path = os.path.abspath(os.path.dirname(__file__)) + "/" +detail_folder
     # ディレクトリが存在しない場合作成する
@@ -171,7 +174,7 @@ player_black = MiniMaxPlayer(
     evaluate_model=SimpleEvaluate
 )
 player_white = MiniMaxPlayer(
-    PlayerId.WHITE_PLAYER_ID.value, search_depth=5,
+    PlayerId.WHITE_PLAYER_ID.value, search_depth=4,
     evaluate_model=SimpleEvaluateV2
 )
 
