@@ -71,7 +71,12 @@ def analytics(
     summary_file_name =\
         f"summary_{black_model_name}_{black_search_depth}_{black_evaluate_name}_vs_"\
         f"{white_model_name}_{white_search_depth}_{white_evaluate_name}.csv"
-    summary_file_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), "report/"+summary_file_name)
+    summary_folder = f"report/summary/{black_model_name}_{black_search_depth}_{white_model_name}_{white_search_depth}/"
+    summary_folder_path = os.path.abspath(os.path.dirname(__file__)) + "/" + summary_folder
+    # フォルダが存在しない場合作成
+    if not os.path.exists(summary_folder_path):
+        os.makedirs(summary_folder_path)
+    summary_file_path = os.path.join(summary_folder_path, summary_folder_path+summary_file_name)
     summary_header = [
         "勝者", "黒の石の数", "白の石の数",
         "最大の探索時間の世代", "最大の探索時間", "最大の全探索数", "最大の実際の探索数",
@@ -83,7 +88,12 @@ def analytics(
     detail_file_name =\
         f"detail_{black_model_name}_{black_search_depth}_{black_evaluate_name}_vs_"\
         f"{white_model_name}_{white_search_depth}_{white_evaluate_name}.csv"
-    detail_file_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), "report/"+detail_file_name)
+    detail_folder = f"report/detail/{black_model_name}_{black_search_depth}_{white_model_name}_{white_search_depth}/"
+    detail_folder_path = os.path.abspath(os.path.dirname(__file__)) + "/" +detail_folder
+    # ディレクトリが存在しない場合作成する
+    if not os.path.exists(detail_folder_path):
+        os.makedirs(detail_folder_path)
+    detail_file_path = os.path.join(detail_folder_path, detail_file_name)
     detail_header = [
         "世代", "黒のボード", "白のボード", "アクション",
         "探索時間", "全探索数", "実際の探索数", "カットした探索数"
@@ -157,11 +167,11 @@ def analytics(
 # simulation
 env = Env2(is_out_game_info=True, is_out_board=True)
 player_black = MiniMaxPlayer(
-    PlayerId.BLACK_PLAYER_ID.value, search_depth=5,
+    PlayerId.BLACK_PLAYER_ID.value, search_depth=4,
     evaluate_model=SimpleEvaluate
 )
 player_white = MiniMaxPlayer(
-    PlayerId.WHITE_PLAYER_ID.value, search_depth=6,
+    PlayerId.WHITE_PLAYER_ID.value, search_depth=5,
     evaluate_model=SimpleEvaluateV2
 )
 
