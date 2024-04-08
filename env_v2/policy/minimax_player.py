@@ -18,7 +18,8 @@ class MiniMaxPlayer():
     def __init__(
         self, player_id: int = PlayerId.BLACK_PLAYER_ID.value,
         search_depth: int = 4,
-        evaluate_model=SimpleEvaluate
+        evaluate_model=SimpleEvaluate,
+        is_search_debug: bool = False,
     ) -> None:
         """
         MiniMax法でアクションを行う
@@ -26,12 +27,15 @@ class MiniMaxPlayer():
         args:
             env: Env2
             search_depth: 探索世代数 TODO: のちのちベースノードの世代ごとに探索数を変えるかも。
+            evaluate_model: 評価関数のクラス
+            is_search_debug: 探索結果の推定遷移
         """
         self._env = Env2(is_out_game_info=False, is_out_board=False)
         self.player_id = player_id
         self.search_depth = search_depth
         self.evaluate_model = evaluate_model
         self.evaluate = evaluate_model.evaluate
+        self._is_search_debug = is_search_debug
         self.MAX_VALUE = float("inf")
         self.MIN_VALUE = float("-inf")
         self.DRAW_VALUE = 0
@@ -51,6 +55,10 @@ class MiniMaxPlayer():
             search_num = 0,
             search_all_num = 0
         )
+        
+        # 推定結果の遷移
+        if self._is_search_debug:
+            print(f"[推定結果の遷移-ベースgeneration={game_info.generation}]")
         
         # アクションを選択
         node_value, node_action = self._max(
@@ -141,7 +149,14 @@ class MiniMaxPlayer():
                 max_action = action
             else:
                 pass
-
+        
+        # 探索結果の推定遷移
+        if self._is_search_debug:
+            print(
+                f"generation: {game_info.generation}\n"
+                f"max_node_value: {max_node_value}\n"
+                f"max_action: {max_action}\n"
+            )
         return max_node_value, max_action
             
     def _mini(
@@ -217,6 +232,14 @@ class MiniMaxPlayer():
                 min_action = action 
             else:
                 pass
+        
+        # 探索結果の推定遷移
+        if self._is_search_debug:
+            print(
+                f"generation: {game_info.generation}\n"
+                f"min_node_value: {min_node_value}\n"
+                f"min_action: {min_action}\n"
+            )
 
         return min_node_value, min_action
 

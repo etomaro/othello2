@@ -28,6 +28,7 @@ class DetailReportRow:
     search_cut_num: Optional[int]
 
 def analytics(
+    is_print_analytics: bool,
     detail_report_rows: list[DetailReportRow], last_game_info: GameInfo,
     game_time: float,
     black_model_name: str, white_model_name: str,
@@ -134,7 +135,8 @@ def analytics(
     out += out_summary + "\n"
     out += out_detail
     out += "------------------------"
-    print(out)
+    if is_print_analytics:
+        print(out)
     
     # レポート作成
     
@@ -167,15 +169,22 @@ def analytics(
                 ]
             )
 
-# simulation
-env = Env2(is_out_game_info=True, is_out_board=True)
+# ----------------simulation----------------
+# debugフラグ
+is_print_last_game_info = False  # ゲーム結果を出力するかどうか
+is_print_analytics = False  # 探索情報を出力するかどうか
+is_out_game_info = False  # 1手ごとのゲーム情報を出力するかどうか
+is_out_board = False  # 1手ごとのボードを出力するかどうか
+is_search_debug = True  # 探索で選択したノードを出力するかどうか
+
+env = Env2(is_out_game_info=is_out_game_info, is_out_board=is_out_board)
 player_black = MiniMaxPlayer(
     PlayerId.BLACK_PLAYER_ID.value, search_depth=4,
-    evaluate_model=SimpleEvaluate
+    evaluate_model=SimpleEvaluate, is_search_debug=is_search_debug
 )
 player_white = MiniMaxPlayer(
     PlayerId.WHITE_PLAYER_ID.value, search_depth=4,
-    evaluate_model=SimpleEvaluateV2
+    evaluate_model=SimpleEvaluateV2, is_search_debug=is_search_debug
 )
 
 play_num = 1
@@ -227,6 +236,7 @@ for play_count in range(1, play_num+1):
     
     # ゲーム結果を出力
     analytics(
+        is_print_analytics=is_print_analytics,
         detail_report_rows=detail_report_rows,
         last_game_info=game_info,
         game_time=time.time() - start_game_time,
@@ -237,4 +247,5 @@ for play_count in range(1, play_num+1):
         black_evaluate_name=player_black.evaluate_model.EVALUATE_NAME,
         white_evaluate_name=player_white.evaluate_model.EVALUATE_NAME
     )
-    env.output_game_info(game_info)
+    if is_print_last_game_info:
+        env.output_game_info(game_info)
