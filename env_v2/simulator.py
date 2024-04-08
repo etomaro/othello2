@@ -158,11 +158,11 @@ def analytics(
 env = Env2(is_out_game_info=True, is_out_board=True)
 player_black = MiniMaxPlayer(
     PlayerId.BLACK_PLAYER_ID.value, search_depth=5,
-    evaluate_model=SimpleEvaluateV2
+    evaluate_model=SimpleEvaluate
 )
 player_white = MiniMaxPlayer(
     PlayerId.WHITE_PLAYER_ID.value, search_depth=6,
-    evaluate_model=HuristicEvaluate
+    evaluate_model=SimpleEvaluateV2
 )
 
 play_num = 1
