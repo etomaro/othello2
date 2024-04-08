@@ -39,7 +39,7 @@ def analytics(
     ゲーム結果を分析する(ターミナルに出力とcsvとして保存)
       [csvとして保存]
         1. 概要レポート
-          ファイル名: summary_{BLACK_MODEL_NAME}_{DEPTH}_{EVALUATE_NAME}_vs_{WHITE_MODEL_NAME}_{DEPTH}_{EVALUATE_NAME}.csv
+          ファイル名: summary_{BLACK_MODEL_NAME}_{DEPTH}_{EVALUATE_NAME}_vs_{WHITE_MODEL_NAME}_{DEPTH}_{EVALUATE_NAME}_{作成日時(yyyymmdd(JS))}.csv
           header: 
             勝者
             黒の石の数
@@ -51,7 +51,7 @@ def analytics(
           row key:
             ※ 1行のみ
         2. 詳細レポート
-          ファイル名: detail_{BLACK_MODEL_NAME}_{DEPTH}_{EVALUATE_NAME}_vs_{WHITE_MODEL_NAME}_{DEPTH}_{EVALUATE_NAME}.csv
+          ファイル名: detail_{BLACK_MODEL_NAME}_{DEPTH}_{EVALUATE_NAME}_vs_{WHITE_MODEL_NAME}_{DEPTH}_{EVALUATE_NAME}_{作成日時(yyyymmdd(JS))}.csv
           header: 
             世代
             黒のボード
