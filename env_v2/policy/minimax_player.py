@@ -5,13 +5,13 @@ from dataclasses import dataclass
 from env_v2.env import PlayerId, GameInfo, Env2, GameState
 from env_v2.evaluations.evaluate import SimpleEvaluate
 
+
 @dataclass
 class AnalyticsInfo:
     generation: int  # 世代
     search_time: float  # 処理時間
     search_num: int  # 探索数(カットしたノードは含まない)
-    search_all_num: int  # 全探索数
-    
+    search_all_num: int  # 全探索数    
 
 class MiniMaxPlayer():
     MODEL_NAME = "MINIMAX"
@@ -253,8 +253,4 @@ class MiniMaxPlayer():
                 actionables_list.append(mask)
             mask = mask >> 1
         return actionables_list
-        
-        
-        
-        
         
