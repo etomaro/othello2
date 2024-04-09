@@ -173,18 +173,18 @@ def analytics(
 # debugフラグ
 is_print_last_game_info = False  # ゲーム結果を出力するかどうか
 is_print_analytics = False  # 探索情報を出力するかどうか
-is_out_game_info = False  # 1手ごとのゲーム情報を出力するかどうか
-is_out_board = False  # 1手ごとのボードを出力するかどうか
-is_search_debug = True  # 探索で選択したノードを出力するかどうか
+is_out_game_info = True  # 1手ごとのゲーム情報を出力するかどうか
+is_out_board = True  # 1手ごとのボードを出力するかどうか
+is_search_debug = False  # 探索で選択したノードを出力するかどうか
 
 env = Env2(is_out_game_info=is_out_game_info, is_out_board=is_out_board)
 player_black = MiniMaxPlayer(
-    PlayerId.BLACK_PLAYER_ID.value, search_depth=4,
+    PlayerId.BLACK_PLAYER_ID.value, search_depth=5,
     evaluate_model=SimpleEvaluate, is_search_debug=is_search_debug
 )
 player_white = MiniMaxPlayer(
-    PlayerId.WHITE_PLAYER_ID.value, search_depth=4,
-    evaluate_model=SimpleEvaluateV2, is_search_debug=is_search_debug
+    PlayerId.WHITE_PLAYER_ID.value, search_depth=6,
+    evaluate_model=SimpleEvaluate, is_search_debug=is_search_debug
 )
 
 play_num = 1

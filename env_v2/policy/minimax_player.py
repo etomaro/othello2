@@ -142,8 +142,8 @@ class MiniMaxPlayer():
                 return tmp_node_value, action
             
             if max_action is None:
-                max_action = action
                 max_node_value = tmp_node_value 
+                max_action = action
             elif max_node_value < tmp_node_value:
                 max_node_value = tmp_node_value 
                 max_action = action
@@ -226,7 +226,8 @@ class MiniMaxPlayer():
                 return tmp_node_value, action
             
             if min_action is None:
-                min_action = action 
+                min_node_value = tmp_node_value 
+                min_action = action
             elif min_node_value > tmp_node_value:
                 min_node_value = tmp_node_value 
                 min_action = action 
