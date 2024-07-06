@@ -12,6 +12,7 @@ from zoneinfo import ZoneInfo
 from env_v2.env import Env2, GameInfo, PlayerId, GameState
 from env_v2.policy.random_player import RandomPlayer
 from env_v2.policy.minimax_player import MiniMaxPlayer, AnalyticsInfo
+from env_v2.policy.negamax_player import NegaMaxPlayer
 from env_v2.evaluations.evaluate import SimpleEvaluate, SimpleEvaluateV2, HuristicEvaluate
 
 
@@ -179,11 +180,11 @@ is_search_debug = False  # 探索で選択したノードを出力するかど�
 
 env = Env2(is_out_game_info=is_out_game_info, is_out_board=is_out_board)
 player_black = MiniMaxPlayer(
-    PlayerId.BLACK_PLAYER_ID.value, search_depth=5,
+    PlayerId.BLACK_PLAYER_ID.value, search_depth=4,
     evaluate_model=SimpleEvaluate, is_search_debug=is_search_debug
 )
-player_white = MiniMaxPlayer(
-    PlayerId.WHITE_PLAYER_ID.value, search_depth=6,
+player_white = NegaMaxPlayer(
+    PlayerId.WHITE_PLAYER_ID.value, search_depth=4,
     evaluate_model=SimpleEvaluate, is_search_debug=is_search_debug
 )
 
