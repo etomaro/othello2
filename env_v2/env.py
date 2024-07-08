@@ -297,8 +297,8 @@ class Env2():
         black_count = bin(black_board).count("1")
         white_count = bin(white_board).count("1")
         
-        black_actionables = self._get_actionables(black_board, white_board, PlayerId.BLACK_PLAYER_ID.value)
-        white_actionables = self._get_actionables(black_board, white_board, PlayerId.WHITE_PLAYER_ID.value)
+        black_actionables = self.get_actionables(black_board, white_board, PlayerId.BLACK_PLAYER_ID.value)
+        white_actionables = self.get_actionables(black_board, white_board, PlayerId.WHITE_PLAYER_ID.value)
         
         if bin(black_actionables).count("1") == 0 and bin(white_actionables).count("1") == 0:
             if black_count < white_count:
@@ -323,18 +323,18 @@ class Env2():
         return:
         
         """
-        actionables = self._get_actionables(black_board, white_board, player_id)
+        actionables = self.get_actionables(black_board, white_board, player_id)
         # アクション出来ない場合
         if actionables == 0b0:
             player_id = 1 - player_id
-            actionables = self._get_actionables(black_board, white_board, player_id)
+            actionables = self.get_actionables(black_board, white_board, player_id)
             
         next_player_id = 1 - player_id
         
         return actionables, next_player_id
     
     @staticmethod
-    def _get_actionables(black_board: int, white_board: int, player_id: int) -> int:
+    def get_actionables(black_board: int, white_board: int, player_id: int) -> int:
         """
         アクション可能な座標を算出
         
