@@ -169,26 +169,21 @@ def _get_left_z(board:int) -> tuple:
 def _get_rotato90(board:int) -> tuple:
     """
     5. 90度回転
+    
+    横1列を縦1列に変換して90度回転する
+    ex:横0->縦7
     """
-    mask1 = 0x0000000000000000  # 行1
-    mask2 = 0x0000000000000000  # 行2
-    mask3 = 0x0000000000000000  # 行3
-    mask4 = 0x0000000000000000  # 行4
-    mask5 = 0x0000000000000000  # 行5
-    mask6 = 0x0000000000000000  # 行6
-    mask7 = 0x0000000000000000  # 行7
-    mask8 = 0x0000000000000000  # 行8
-    
     result_board = 0x0000000000000000
+    base_mask = 0x8000000000000000
     
-    result_board |= (board & mask1) >> 56  # 7*8
-    result_board |= (board & mask2) >> 40
-    result_board |= (board & mask3) >> 24
-    result_board |= (board & mask4) >> 8
-    result_board |= (board & mask5) << 8
-    result_board |= (board & mask6) << 24
-    result_board |= (board & mask7) << 40
-    result_board |= (board & mask8) << 56
+    for i in range(8):  # 行
+        for j in range(8):  # 列
+            mask = base_mask >> (i*8+j)
+            move = (-j-i*8) + (7-i) + (j*8)  # (0,0)基点で計算
+            if move >=0:
+                result_board |= (board & mask) >> move
+            else:
+                result_board |= (board & mask) << -move
     
     return result_board
 
@@ -196,50 +191,32 @@ def _get_rotato180(board:int) -> tuple:
     """
     6. 180度回転
     """
-    mask1 = 0x0000000000000000  # 行1
-    mask2 = 0x0000000000000000  # 行2
-    mask3 = 0x0000000000000000  # 行3
-    mask4 = 0x0000000000000000  # 行4
-    mask5 = 0x0000000000000000  # 行5
-    mask6 = 0x0000000000000000  # 行6
-    mask7 = 0x0000000000000000  # 行7
-    mask8 = 0x0000000000000000  # 行8
+    # TODO: 効率化できる
+    for _ in range(2):
+        board = _get_rotato90(board)
     
-    result_board = 0x0000000000000000
-    
-    result_board |= (board & mask1) >> 56  # 7*8
-    result_board |= (board & mask2) >> 40
-    result_board |= (board & mask3) >> 24
-    result_board |= (board & mask4) >> 8
-    result_board |= (board & mask5) << 8
-    result_board |= (board & mask6) << 24
-    result_board |= (board & mask7) << 40
-    result_board |= (board & mask8) << 56
-    
-    return result_board
+    return board
 
 def _get_rotato270(board:int) -> tuple:
     """
     7. 270度回転
     """
-    mask1 = 0x0000000000000000  # 行1
-    mask2 = 0x0000000000000000  # 行2
-    mask3 = 0x0000000000000000  # 行3
-    mask4 = 0x0000000000000000  # 行4
-    mask5 = 0x0000000000000000  # 行5
-    mask6 = 0x0000000000000000  # 行6
-    mask7 = 0x0000000000000000  # 行7
-    mask8 = 0x0000000000000000  # 行8
+    # TODO: 効率化できる
+    for _ in range(3):
+        board = _get_rotato90(board)
     
-    result_board = 0x0000000000000000
-    
-    result_board |= (board & mask1) >> 56  # 7*8
-    result_board |= (board & mask2) >> 40
-    result_board |= (board & mask3) >> 24
-    result_board |= (board & mask4) >> 8
-    result_board |= (board & mask5) << 8
-    result_board |= (board & mask6) << 24
-    result_board |= (board & mask7) << 40
-    result_board |= (board & mask8) << 56
-    
-    return result_board
+    return board
+
+def _print_board(board: int):
+    """
+    debug用
+    boardを64桁にして視覚的にprint出力する
+    """
+    result = format(board, '64b')  # 2進数で64桁で0で穴埋め
+    out = "\n"
+    for i, value in enumerate(result):
+        if int(i)%8==7:
+            out += f"{value}\n"
+        else:
+            out += value
+    print(out)

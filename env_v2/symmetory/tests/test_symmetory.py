@@ -3,7 +3,8 @@ import unittest
 
 from env_v2.env import Env2, GameInfo, PlayerId, GameState
 from env_v2.policy.random_player import RandomPlayer
-from env_v2.symmetory.symmetory import _get_y, _get_x, _get_right_z, _get_left_z
+from env_v2.symmetory.symmetory import (_get_y, _get_x, _get_right_z, _get_left_z,
+                                        _get_rotato90, _get_rotato180, _get_rotato270)
 
 
 class TestSymmetry(unittest.TestCase):
@@ -138,3 +139,79 @@ class TestSymmetry(unittest.TestCase):
         exp = 0x80c0e0f0f8fcfeff
         result = _get_left_z(board)
         self.assertEqual(exp, result)
+    
+    def test_get_rotato90(self):
+        """
+        1111 1111
+        1111 1111
+        1111 1111
+        1111 1111
+        0000 0000
+        0000 0000
+        0000 0000
+        0000 0000
+        ↓
+        0000 1111
+        0000 1111
+        0000 1111
+        0000 1111
+        0000 1111
+        0000 1111
+        0000 1111
+        0000 1111
+        """
+        board = 0xffffffff00000000
+        exp = 0x0f0f0f0f0f0f0f0f
+        result = _get_rotato90(board)
+        self.assertEqual(exp, result)
+
+    def test_get_rotato180(self):
+        """
+        1111 1111
+        1111 1111
+        1111 1111
+        1111 1111
+        0000 0000
+        0000 0000
+        0000 0000
+        0000 0000
+        ↓
+        0000 0000
+        0000 0000
+        0000 0000
+        0000 0000
+        1111 1111
+        1111 1111
+        1111 1111
+        1111 1111
+        """
+        board = 0xffffffff00000000
+        exp = 0x00000000ffffffff
+        result = _get_rotato180(board)
+        self.assertEqual(exp, result)
+    
+    def test_get_rotato270(self):
+        """
+        1111 1111
+        1111 1111
+        1111 1111
+        1111 1111
+        0000 0000
+        0000 0000
+        0000 0000
+        0000 0000
+        ↓
+        1111 0000
+        1111 0000
+        1111 0000
+        1111 0000
+        1111 0000
+        1111 0000
+        1111 0000
+        1111 0000
+        """
+        board = 0xffffffff00000000
+        exp = 0xf0f0f0f0f0f0f0f0
+        result = _get_rotato270(board)
+        self.assertEqual(exp, result)
+    
