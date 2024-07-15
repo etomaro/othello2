@@ -3,7 +3,7 @@ import unittest
 
 from env_v2.env import Env2, GameInfo, PlayerId, GameState
 from env_v2.policy.random_player import RandomPlayer
-from env_v2.symmetory.symmetory import _get_y, _get_x, _get_right_z
+from env_v2.symmetory.symmetory import _get_y, _get_x, _get_right_z, _get_left_z
 
 
 class TestSymmetry(unittest.TestCase):
@@ -112,4 +112,29 @@ class TestSymmetry(unittest.TestCase):
         board =0xfffefcf8f0e0c080
         exp = 0x0103070f1f3f7fff
         result = _get_right_z(board)
+        self.assertEqual(exp, result)
+    
+    def test_get_left_z(self):
+        """
+        1111 1111
+        0111 1111
+        0011 1111
+        0001 1111
+        0000 1111
+        0000 0111
+        0000 0011
+        0000 0001
+        ↓
+        1000 0000
+        1100 0000
+        1110 0000
+        1111 0000
+        1111 1000
+        1111 1100
+        1111 1110
+        1111 1111
+        """
+        board =0xff7f3f1f0f070301
+        exp = 0x80c0e0f0f8fcfeff
+        result = _get_left_z(board)
         self.assertEqual(exp, result)
