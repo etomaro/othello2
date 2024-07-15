@@ -125,25 +125,44 @@ def _get_left_z(board:int) -> tuple:
     """
     4. 左斜め軸
     """
-    mask1 = 0x0000000000000000  # 行1
-    mask2 = 0x0000000000000000  # 行2
-    mask3 = 0x0000000000000000  # 行3
-    mask4 = 0x0000000000000000  # 行4
-    mask5 = 0x0000000000000000  # 行5
-    mask6 = 0x0000000000000000  # 行6
-    mask7 = 0x0000000000000000  # 行7
-    mask8 = 0x0000000000000000  # 行8
+    # 左斜めごとに反転する
+    mask1 = 0x0100000000000000  # 斜め1
+    mask2 = 0x0201000000000000  # 斜め2
+    mask3 = 0x0402010000000000  # 斜め3
+    mask4 = 0x0804020100000000  # 斜め4
+    mask5 = 0x1008040201000000  # 斜め5
+    mask6 = 0x2010080402010000  # 斜め6
+    mask7 = 0x4020100804020100  # 斜め7
+    
+    mask8 = 0x8040201008040201  # 斜め8
+    
+    mask9 = 0x0080402010080402  # 斜め9
+    mask10 = 0x0000804020100804  # 斜め10
+    mask11 = 0x0000008040201008  # 斜め11
+    mask12 = 0x0000000080402010  # 斜め12
+    mask13 = 0x0000000000804020  # 斜め13
+    mask14 = 0x0000000000008040  # 斜め14
+    mask15 = 0x0000000000000080  # 斜め15
     
     result_board = 0x0000000000000000
     
-    result_board |= (board & mask1) >> 56  # 7*8
-    result_board |= (board & mask2) >> 40
-    result_board |= (board & mask3) >> 24
-    result_board |= (board & mask4) >> 8
-    result_board |= (board & mask5) << 8
-    result_board |= (board & mask6) << 24
-    result_board |= (board & mask7) << 40
-    result_board |= (board & mask8) << 56
+    result_board |= (board & mask1) >> 49 # 8*6+1
+    result_board |= (board & mask2) >> 42  # 8*5+2
+    result_board |= (board & mask3) >> 35  # 8*4+3
+    result_board |= (board & mask4) >> 28  # 8*3+4
+    result_board |= (board & mask5) >> 21  # 8*2+5
+    result_board |= (board & mask6) >> 14  # 8*1+6 
+    result_board |= (board & mask7) >> 7  # 8*0+7
+    
+    result_board |= (board & mask8)
+    
+    result_board |= (board & mask9) << 7  
+    result_board |= (board & mask10) << 14
+    result_board |= (board & mask11) << 21
+    result_board |= (board & mask12) << 28
+    result_board |= (board & mask13) << 35
+    result_board |= (board & mask14) << 42
+    result_board |= (board & mask15) << 49
     
     return result_board
 
