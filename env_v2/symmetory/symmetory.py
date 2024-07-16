@@ -1,5 +1,5 @@
 
-def get_symmetory(board:int) -> list[tuple]:
+def get_symmetorys(black_board:int, white_board:int) -> list[tuple]:
     """
     対称性
     1. y軸
