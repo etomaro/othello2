@@ -9,6 +9,8 @@ from env_v2.env import Env2, GameInfo, PlayerId, GameState
 from env_v2.tools.draw_board import draw_board
 from env_v2.symmetory.symmetory import (_get_y, _get_x, _get_right_z,_get_left_z,
                                         _get_rotato90, _get_rotato180, _get_rotato270)
+from PIL import Image
+import os
 
 
 def draw_board_symmetory(
@@ -24,18 +26,18 @@ def draw_board_symmetory(
         text_color="red")
     now_row_num = 1
     for func, text in symmetory_map.items():
-        black_board = func(black_board)
-        white_board = func(white_board)
+        sym_black_board = func(black_board)
+        sym_white_board = func(white_board)
         if now_row_num == row_num:
             # 次の行へ
             pos_x = start_x
             pos_y = start_y + buffer_y + board_size*square_size
         else:
             pos_x = pos_x + buffer_x + board_size*square_size
-        draw_board(canvas, black_board, white_board, None, start_x=pos_x, start_y=pos_y, square_size=square_size, text=text)
+        draw_board(canvas, sym_black_board, sym_white_board, None, start_x=pos_x, start_y=pos_y, square_size=square_size, text=text)
         
         now_row_num += 1
-
+    
 if __name__ == "__main__": 
     # ------------設定値------------
     # ボードのサイズとマスのサイズ
@@ -56,8 +58,8 @@ if __name__ == "__main__":
     start_y = 0
     buffer_x = 10
     buffer_y = 50
-    black_board = 0x0000000810000000
-    white_board = 0x0000001008000000
+    black_board = 17626548404224
+    white_board = 35254098198528
     action_player = PlayerId.BLACK_PLAYER_ID.value
     actionables = Env2.get_actionables(black_board, white_board, action_player)
     is_actionables = False  # アクション可能を表示するかどうか
@@ -84,5 +86,6 @@ if __name__ == "__main__":
         canvas, black_board, white_board, symmetory_map, row_num, actionables, start_x, start_y,
         board_size, square_size, buffer_x, buffer_y, is_actionables
     )
+    
     # ウィンドウのループ処理
     root.mainloop()
