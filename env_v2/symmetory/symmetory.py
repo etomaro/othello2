@@ -2,6 +2,7 @@
 def get_symmetorys(black_board:int, white_board:int) -> list[tuple]:
     """
     対称性
+    0. base
     1. y軸
     2. x軸
     3. 右斜め軸
@@ -9,15 +10,31 @@ def get_symmetorys(black_board:int, white_board:int) -> list[tuple]:
     5. 90度回転
     6. 180度回転
     7. 270度回転
+    
+    可能性
+    y->x: 180度回転と同じ
+    y->90: 右斜めz軸反転
+    y->180: x軸反転
+    y->270: 左斜め反転
+    x->90: 左斜めz軸反転
+    x->180: y軸反転
+    x->270: 右斜めz軸反転
+    zr->90: x軸反転
+    zr->180: zl
+    zr->270: y軸反転
+    zl->90: y軸反転
+    zl->180: zr
+    zl->270: x軸反転
+    zr->zl: 180度
     """
-    symmetorys = []
-    symmetorys.append(_get_y(black_board, white_board))
-    symmetorys.append(_get_x(black_board, white_board))
-    symmetorys.append(_get_right_z(black_board, white_board))
-    symmetorys.append(_get_left_z(black_board, white_board))
-    symmetorys.append(_get_rotato90(black_board, white_board))
-    symmetorys.append(_get_rotato180(black_board, white_board))
-    symmetorys.append(_get_rotato270(black_board, white_board))
+    symmetorys = [(black_board, white_board)]
+    symmetorys.append((_get_y(black_board), _get_y(white_board)))
+    symmetorys.append((_get_x(black_board), _get_x(white_board)))
+    symmetorys.append((_get_right_z(black_board), _get_right_z(white_board)))
+    symmetorys.append((_get_left_z(black_board), _get_left_z(white_board)))
+    symmetorys.append((_get_rotato90(black_board), _get_rotato90(white_board)))
+    symmetorys.append((_get_rotato180(black_board), _get_rotato180(white_board)))
+    symmetorys.append((_get_rotato270(black_board), _get_rotato270(white_board)))
     
     return symmetorys
 

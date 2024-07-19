@@ -9,7 +9,7 @@ from env_v2.policy.random_player import RandomPlayer
 from env_v2.policy.minimax_player import MiniMaxPlayer, AnalyticsInfo
 from env_v2.policy.negamax_player import NegaMaxPlayer
 from env_v2.evaluations.evaluate import SimpleEvaluate, SimpleEvaluateV2, HuristicEvaluate
-
+from env_v2.symmetory.symmetory import get_symmetorys
 
 
 PLAYER_ID_NONE = 999
@@ -116,7 +116,9 @@ def create_state_data(generation: int) -> tuple[str, list[str]]:
     
     # 1. 1つ前の世代のすべての状態数を取得する
     states = get_state_file(generation -1)
-    for state in states:
+    print(f"\n\n------------算出する世代:{generation}------------")
+    print(f"計算するノード数: {len(states)}")
+    for i, state in enumerate(states):
         black_board, white_board, player_id = state.split("_")
         # ゲーム終了してる場合
         if player_id == PLAYER_ID_NONE:
@@ -147,11 +149,30 @@ def create_state_data(generation: int) -> tuple[str, list[str]]:
             
             # 状態作成
             next_state = f"{next_black_board}_{next_white_board}_{next_player_id}"
-            datas.append(next_state)
             
-            # TODO: 対称性
+            # 対称性取得
+            next_symmetorys = get_symmetorys(next_black_board, next_white_board)
+            next_states_symmetory = change_to_states(next_symmetorys, next_player_id)  # 状態の持ち方を変更する
+            # 既に対称性が登録されている場合登録しない
+            if not set(datas) & set(next_states_symmetory):
+                datas.append(next_state)
+        
+        # 1000ごとに出力
+        if i%1000 == 0:
+            print(f"{i}. calc node done")
     
     return file_path, datas
+
+def change_to_states(symmetorys: list[tuple], player_id: int) -> list[str]:
+    """
+    状態を{black_board}_{white_board}_{player_id}に変換する
+    """
+    states = []
+    for black_board, white_board in symmetorys:
+         state = f"{black_board}_{white_board}_{player_id}"
+         states.append(state)
+    
+    return states
 
 def get_state_file(generation) -> list[str]:
     """
@@ -168,5 +189,6 @@ def get_state_file(generation) -> list[str]:
     return datas
         
         
-if __name__ == "__main__": 
-    main(1)
+if __name__ == "__main__":
+    for i in range(10):
+        main(i)

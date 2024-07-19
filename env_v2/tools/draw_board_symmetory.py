@@ -25,13 +25,15 @@ def draw_board_symmetory(
         canvas, black_board, white_board, None, start_x=pos_x, start_y=pos_y, square_size=square_size, text="Base",
         text_color="red")
     now_row_num = 1
-    for func, text in symmetory_map.items():
-        sym_black_board = func(black_board)
-        sym_white_board = func(white_board)
-        if now_row_num == row_num:
+    for text, funcs in symmetory_map.items():
+        sym_black_board, sym_white_board = black_board, white_board
+        for func in funcs:
+            sym_black_board = func(sym_black_board)
+            sym_white_board = func(sym_white_board)
+        if now_row_num%row_num==0:
             # 次の行へ
             pos_x = start_x
-            pos_y = start_y + buffer_y + board_size*square_size
+            pos_y = pos_y + buffer_y + board_size*square_size
         else:
             pos_x = pos_x + buffer_x + board_size*square_size
         draw_board(canvas, sym_black_board, sym_white_board, None, start_x=pos_x, start_y=pos_y, square_size=square_size, text=text)
@@ -42,17 +44,20 @@ if __name__ == "__main__":
     # ------------設定値------------
     # ボードのサイズとマスのサイズ
     symmetory_map = {
-        _get_y: "①y軸反転",
-        _get_x: "②x軸反転",
-        _get_right_z: "③右斜めz軸反転",
-        _get_left_z: "④左斜めz軸反転",
-        _get_rotato90: "⑤90度回転",
-        _get_rotato180: "⑥180度回転",
-        _get_rotato270: "⑦270度回転"
+        "①y軸反転": [_get_y],
+        "②x軸反転": [_get_x],
+        "③右斜めz軸反転": [_get_right_z],
+        "④左斜めz軸反転": [_get_left_z],
+        "⑤90度回転": [_get_rotato90],
+        "⑥180度回転": [_get_rotato180],
+        "⑦270度回転": [_get_rotato270],
+        "⑧y->90度": [_get_x, _get_right_z],
+        "⑧y->180度": [_get_x, _get_left_z],
+        "⑧y->270度": [_get_left_z, _get_rotato270],
     }
         
     board_size = 8
-    square_size = 40
+    square_size = 30
     row_num = 4  # 1行当たりのボード数
     start_x = 50
     start_y = 0
@@ -76,7 +81,7 @@ if __name__ == "__main__":
     root.title(title)
     # Canvasの作成
     canvas_width = board_size*square_size*row_num + start_x*2 + buffer_x*(row_num-1)
-    canvas_height = board_size*square_size*col_num + start_y*2 + buffer_y*(col_num-1)
+    canvas_height = board_size*square_size*col_num + start_y*2 + buffer_y*(col_num-1) + 100  # TODO: +100を適切にする必要がある
 
     canvas = tk.Canvas(root, width=canvas_width, height=canvas_height)
     canvas.pack()
