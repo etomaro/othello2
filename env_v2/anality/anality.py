@@ -3,7 +3,7 @@
 """
 import csv
 import time
-from env_v2.anality.settings import REPORT_FOLDER, STATE_FILE_NAME, ANALITY_FILE_NAME
+from env_v2.anality.settings import REPORT_FOLDER, STATE_FILE_NAME, ANALITY_FILE_NAME, TMP_REPORT_FOLDER
 from env_v2.env import Env2, GameInfo, PlayerId, GameState
 from env_v2.policy.random_player import RandomPlayer
 from env_v2.policy.minimax_player import MiniMaxPlayer, AnalyticsInfo
@@ -23,11 +23,16 @@ def main(generation: int):
     args
       generation: 世代
     """
+    file_name_state = STATE_FILE_NAME.replace("GENERATION", str(generation))
+    file_path_state = TMP_REPORT_FOLDER + file_name_state
+    file_name_analyty = ANALITY_FILE_NAME.replace("GENERATION", str(generation))
+    file_path_analyty = TMP_REPORT_FOLDER + file_name_analyty
+    
     start_time = time.time()
-    state_num = write_state_file(generation)
-    write_anality_file(generation, state_num, start_time)
+    state_num = write_state_file(generation, file_path_state)
+    write_anality_file(generation, state_num, start_time, file_path_analyty)
 
-def write_state_file(generation: int) -> int:
+def write_state_file(generation: int, file_path: str) -> int:
     """
     状態数ファイルを作成する
     
@@ -40,9 +45,9 @@ def write_state_file(generation: int) -> int:
       state_num: 状態数
     """
     if generation == 0:
-        file_path, datas = create_initial_state_data()
+        datas = create_initial_state_data()
     else:
-        file_path, datas = create_state_data(generation)
+        datas = create_state_data(generation)
     
     rows = [[data] for data in datas]
     with open(file_path, "w", newline="") as f:
@@ -51,7 +56,7 @@ def write_state_file(generation: int) -> int:
     
     return len(datas)
 
-def write_anality_file(generation: int, state_num: int, start_time: int):
+def write_anality_file(generation: int, state_num: int, start_time: int, file_path: str):
     """
     分析ファイルを作成する
     
@@ -65,9 +70,6 @@ def write_anality_file(generation: int, state_num: int, start_time: int):
       state_num: 状態数
       start_time: 計測開始時間
     """
-    file_name = ANALITY_FILE_NAME.replace("GENERATION", str(generation))
-    file_path = REPORT_FOLDER + file_name
-    
     calc_time = time.time() - start_time
     headers = ["状態数", "計算時間"]
     datas = [state_num, calc_time]
@@ -77,26 +79,22 @@ def write_anality_file(generation: int, state_num: int, start_time: int):
         writer.writerow(headers)
         writer.writerow(datas)
 
-def create_initial_state_data() -> tuple[str, list[str]]:
+def create_initial_state_data() -> list[str]:
     """
     世代0の状態数データを作成する
     
     return:
-      file_path: ファイルパス
       datas: データ
     """
     ini_black_board = 0x0000000810000000
     ini_white_board = 0x0000001008000000
     ini_action_player_id = PlayerId.BLACK_PLAYER_ID.value
-    generation = 0
     
     datas = [f"{ini_black_board}_{ini_white_board}_{ini_action_player_id}"]
-    file_name = STATE_FILE_NAME.replace("GENERATION", str(generation))
-    file_path = REPORT_FOLDER + file_name
     
-    return file_path, datas
+    return datas
 
-def create_state_data(generation: int) -> tuple[str, list[str]]:
+def create_state_data(generation: int) -> list[str]:
     """
     世代の状態数データを作成する
     
@@ -106,11 +104,8 @@ def create_state_data(generation: int) -> tuple[str, list[str]]:
     4. 対称性を計算しカットできるか判定する
     
     return:
-      file_path: ファイルパス
       datas: データ
     """
-    file_name = STATE_FILE_NAME.replace("GENERATION", str(generation))
-    file_path = REPORT_FOLDER + file_name
     env = Env2()
     datas = []
     
@@ -145,7 +140,7 @@ def create_state_data(generation: int) -> tuple[str, list[str]]:
             new_game_info = env.step(game_info, action)
             next_black_board = new_game_info.black_board
             next_white_board = new_game_info.white_board
-            next_player_id = new_game_info.player_id
+            next_player_id = new_game_info.player_id if new_game_info.player_id is not None else 999
             
             # 状態作成
             next_state = f"{next_black_board}_{next_white_board}_{next_player_id}"
@@ -161,7 +156,7 @@ def create_state_data(generation: int) -> tuple[str, list[str]]:
         if i%1000 == 0:
             print(f"{i}. calc node done")
     
-    return file_path, datas
+    return datas
 
 def change_to_states(symmetorys: list[tuple], player_id: int) -> list[str]:
     """

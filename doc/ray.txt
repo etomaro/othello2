@@ -1,0 +1,6 @@
+・分散処理ライブラリのRay
+基本操作
+https://qiita.com/Yosemat1/items/b09cfb8e90036f783204
+
+分散処理と分散ノード
+https://horomary.hatenablog.com/entry/2021/08/31/230256
