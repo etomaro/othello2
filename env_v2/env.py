@@ -473,4 +473,13 @@ class Env2():
         legal = legal_left | legal_right | legal_up | legal_down | legal_lu | legal_ru | legal_ld | legal_rd
 
         return legal
-        
+    
+    @staticmethod
+    def get_actionables_list(actionables: int) -> list:
+        actionables_list = []
+        mask = 0x8000000000000000
+        for i in range(64):
+            if mask & actionables != 0:
+                actionables_list.append(mask)
+            mask = mask >> 1
+        return actionables_list
