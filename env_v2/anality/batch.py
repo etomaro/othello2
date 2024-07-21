@@ -51,9 +51,11 @@ def write_state_file(generation: int, file_path: str) -> int:
         datas, cut_sym = create_state_data_by_ray_states(generation)
     
     rows = [[data] for data in datas]
+    write_start_time = time.time()
     with open(file_path, "w", newline="") as f:
         writer = csv.writer(f)
         writer.writerows(rows)
+        print("state file書き込み時間: ", time.time()-write_start_time)
     
     return len(datas), cut_sym
 
@@ -75,10 +77,12 @@ def write_anality_file(generation: int, state_num: int, start_time: int, file_pa
     headers = ["状態数", "計算時間", "対称性カット数"]
     datas = [state_num, calc_time, cut_sym]
     
+    write_start_time = time.time()
     with open(file_path, "w", newline="") as f:
         writer = csv.writer(f)
         writer.writerow(headers)
         writer.writerow(datas)
+        print("anality file書き込み時間: ", time.time()-write_start_time)
 
 def create_initial_state_data() -> list[str]:
     """
@@ -109,7 +113,9 @@ def create_state_data_by_ray_states(generation: int) -> list[str]:
     """
     env = Env2()
     # 1. batchごとの分散処理ですべての次の状態を算出する開始
+    read_start_time = time.time()
     states = get_state_file(generation -1)
+    print("state file読込時間: ", time.time()-read_start_time)
     states_num = len(states)
     batch_num = 5000
     print(f"\n\n------------算出する世代:{generation}------------")
@@ -133,9 +139,9 @@ def create_state_data_by_ray_states(generation: int) -> list[str]:
     next_states_set = set(next_states_list)
     cut_sym += len(next_states_list) - len(next_states_set)
      
-    return list(next_states_set), cut_sym
+    return next_states_set, cut_sym
 
-@ray.remote
+@ray.remote(max_retries=-1)
 def batch_calc_state(states: list[str], index, generation) -> set[str]:
     """
     次の状態数を算出する

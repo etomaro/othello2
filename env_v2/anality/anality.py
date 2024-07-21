@@ -10,6 +10,6 @@ if __name__ == "__main__":
     # not_batch(8)
     
     # batch
-    # batch(9)
-    for i in range(10, 20):
-        batch(i)
+    batch(12)
+    # for i in range(12, 20):
+    #     batch(i)
