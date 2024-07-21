@@ -1,4 +1,20 @@
 
+def get_symmetory_for_anality_batch(black_board: int, white_board: int) -> tuple:
+    """
+    対称性を使用して一意となるように1つ返す
+    
+    min(黒) -> min(白)
+    """
+    symmetorys = get_symmetorys(black_board, white_board)
+    # 1つ目の要素が最小のタプルを取得
+    black_min = min(symmetorys, key=lambda x: x[0])
+    # 1つ目の要素が最小の要素が複数ある場合、2つ目の要素が小さいタプルを取得
+    black_mins = [symmetory for symmetory in symmetorys if symmetory[0] == black_min[0]]
+    result_tuple = min(black_mins, key=lambda x: x[1])
+    
+    return result_tuple
+    
+
 def get_symmetorys(black_board:int, white_board:int) -> list[tuple]:
     """
     対称性
