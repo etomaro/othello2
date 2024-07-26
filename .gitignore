@@ -1,6 +1,5 @@
 # 容量が多いので追加
-env_v2/anality/report/*
-
+env_v2/anality/report/
 
 # vscode
 .vscode

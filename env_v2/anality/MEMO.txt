@@ -1,5 +1,6 @@
 ・list.append -> set.addにすると倍くらい早くなった
 
+・OOM: out of memory
 
 ・generation12を求める際に下記エラーになって終了していた
 """
@@ -14,3 +15,7 @@
 
 
 ・rayの分散処理がすべて終わるまでメモリがどんどん上がっていく(generation12で観測)
+
+
+・remote時に[(memory=2 * 1024 * 1024 * 1024)]をしようすると10世代を計算する際に2.5倍時間がかかった(109s->259s)
+  https://docs.ray.io/en/latest/ray-core/patterns/limit-running-tasks.html#core-patterns-limit-running-tasks

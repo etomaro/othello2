@@ -112,6 +112,8 @@ def create_state_data_by_ray_states(generation: int) -> list[str]:
       datas: データ
     """
     env = Env2()
+    context = ray.init()
+    print(f"ray.init(): {context}")
     # 1. batchごとの分散処理ですべての次の状態を算出する開始
     read_start_time = time.time()
     states = get_state_file(generation -1)
@@ -124,6 +126,7 @@ def create_state_data_by_ray_states(generation: int) -> list[str]:
     ray_ids = []
     proc_num = states_num//batch_num + 1
     for i in range(1, proc_num+1):
+        # 30GB
         ray_ids.append(batch_calc_state.remote(states[0: batch_num], i*batch_num, generation))
         del states[0: batch_num]
     ray_ids.append(batch_calc_state.remote(states, states_num, generation))
@@ -131,7 +134,8 @@ def create_state_data_by_ray_states(generation: int) -> list[str]:
     print("非同期ですべての次の状態数を算出する処理を投下済み")
     
     # 2. すべての次の状態を算出できるまで待つ
-    next_states_cut_two_dim = ray.get(ray_ids)
+    next_states_cut_two_dim = [ray.get(ray_id) for ray_id in ray_ids]
+    print("全ての状態の算出終了!!!")
     next_states_list = []  # 2次元を1次元にする
     for array in next_states_cut_two_dim:
         next_states_list += array[0]
