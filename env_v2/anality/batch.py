@@ -5,6 +5,9 @@
 import csv
 import time
 import ray
+import msgpack
+import glob
+
 from env_v2.anality.settings import REPORT_FOLDER, STATE_FILE_NAME, ANALITY_FILE_NAME, TMP_REPORT_FOLDER
 from env_v2.env import Env2, GameInfo, PlayerId, GameState
 from env_v2.policy.random_player import RandomPlayer
@@ -49,7 +52,7 @@ def write_state_file(generation: int, file_path: str) -> int:
         datas, cut_sym = create_initial_state_data()
     else:
         datas, cut_sym = create_state_data_by_ray_states(generation)
-    
+
     rows = [[data] for data in datas]
     write_start_time = time.time()
     with open(file_path, "w", newline="") as f:
@@ -119,10 +122,10 @@ def create_state_data_by_ray_states(generation: int) -> list[str]:
     states = get_state_file(generation -1)
     print("state file読込時間: ", time.time()-read_start_time)
     states_num = len(states)
-    batch_num = 5000
+    batch_num = 100000
     print(f"\n\n------------算出する世代:{generation}------------")
     print(f"計算するノード数: {states_num}")
-    cut_sym = 0  # 対称性でカットした回数
+    cut_sym = 0
     ray_ids = []
     proc_num = states_num//batch_num + 1
     for i in range(1, proc_num+1):
@@ -134,16 +137,24 @@ def create_state_data_by_ray_states(generation: int) -> list[str]:
     print("非同期ですべての次の状態数を算出する処理を投下済み")
     
     # 2. すべての次の状態を算出できるまで待つ
-    next_states_cut_two_dim = [ray.get(ray_id) for ray_id in ray_ids]
+    ray.get(ray_ids)
+    
     print("全ての状態の算出終了!!!")
-    next_states_list = []  # 2次元を1次元にする
-    for array in next_states_cut_two_dim:
-        next_states_list += array[0]
-        cut_sym += array[1]
-    next_states_set = set(next_states_list)
-    cut_sym += len(next_states_list) - len(next_states_set)
-     
-    return next_states_set, cut_sym
+    
+    # ファイルを一括取得する
+    files = glob.glob(f"env_v2/anality/report/tmp/{generation}/*")
+    state_num = 0
+    cut_num = 0  # 対称性でカットした回数
+    next_states_set = set()
+    for file in files:
+        with open(file, "rb") as f:
+            deserialized = msgpack.load(f, raw=False)
+            state_num += len(deserialized[0])
+            cut_num += deserialized[1]
+            next_states_set |= set(deserialized[0])
+    
+    cut_num += state_num - len(next_states_set)
+    return next_states_set, cut_num
 
 @ray.remote(max_retries=-1)
 def batch_calc_state(states: list[str], index, generation) -> set[str]:
@@ -192,9 +203,14 @@ def batch_calc_state(states: list[str], index, generation) -> set[str]:
     
     cut_sym = count_for_cut - len(datas)
     
+    # メモリにデータを登録しないようにstorageに登録する
+    serialized = msgpack.packb((list(datas), cut_sym))
+    file_path = TMP_REPORT_FOLDER + str(generation) + f"/{index}.bin"
+    with open(file_path, "wb") as f:
+        f.write(serialized)
+        
     print(f"index: {index}. next state calc done")
-    
-    return datas, cut_sym
+
 
 def get_state_file(generation) -> list[str]:
     """
