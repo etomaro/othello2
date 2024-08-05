@@ -53,7 +53,7 @@ class Env2():
         """
         状態の初期状態を取得
         """
-        black_board = black_board = 0x0000000810000000
+        black_board = 0x0000000810000000
         white_board = 0x0000001008000000
         actionables = 0x0000102004080000
         
