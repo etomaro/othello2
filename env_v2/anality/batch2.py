@@ -10,6 +10,7 @@ import time
 import ray
 import msgpack
 import glob
+import os
 
 from env_v2.anality.settings import REPORT_FOLDER, STATE_FILE_NAME, ANALITY_FILE_NAME, TMP_REPORT_FOLDER
 from env_v2.env_for_anality import get_initial_board, get_actionables, step, get_actionables_list
@@ -119,14 +120,15 @@ def create_state_data_by_ray_states(generation: int) -> list[str]:
     return:
       datas: データ
     """
-    context = ray.init()
-    print(f"ray.init(): {context}")
+    # context = ray.init()
+    # print(f"ray.init(): {context}")
+    ray.init()
     # 1. batchごとの分散処理ですべての次の状態を算出する開始
     read_start_time = time.time()
     states = get_state_file(generation -1)
     print("state file読込時間: ", time.time()-read_start_time)
     states_num = len(states)
-    batch_num = 100000
+    batch_num = 10000
     print(f"\n\n------------算出する世代:{generation}------------")
     print(f"計算するノード数: {states_num}")
     ray_ids = []
@@ -141,6 +143,7 @@ def create_state_data_by_ray_states(generation: int) -> list[str]:
     
     # 2. すべての次の状態を算出できるまで待つ
     ray.get(ray_ids)
+    ray.shutdown()
     
     print("全ての状態の算出終了!!!")
     
@@ -196,7 +199,10 @@ def batch_calc_state(states: list[str], index, generation) -> set[str]:
     
     # メモリにデータを登録しないようにstorageに登録する
     serialized = msgpack.packb((list(datas), cut_sym))
-    file_path = TMP_REPORT_FOLDER + str(generation) + f"/{index}.bin"
+    folder_path = TMP_REPORT_FOLDER + str(generation)
+    file_path = folder_path + f"/{index}.bin"
+    if not os.path.isdir(folder_path):
+        os.makedirs(folder_path)
     with open(file_path, "wb") as f:
         f.write(serialized)
         

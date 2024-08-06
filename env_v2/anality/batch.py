@@ -122,7 +122,7 @@ def create_state_data_by_ray_states(generation: int) -> list[str]:
     states = get_state_file(generation -1)
     print("state file読込時間: ", time.time()-read_start_time)
     states_num = len(states)
-    batch_num = 100000
+    batch_num = 10000
     print(f"\n\n------------算出する世代:{generation}------------")
     print(f"計算するノード数: {states_num}")
     cut_sym = 0
