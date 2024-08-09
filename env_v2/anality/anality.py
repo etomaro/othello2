@@ -12,7 +12,7 @@ if __name__ == "__main__":
     # not_batch(8)
     
     # batch
-    run(10)
+    run(3)
     # for i in range(0, 10):
     #     print("-----------start-----------")
     #     run(i)
