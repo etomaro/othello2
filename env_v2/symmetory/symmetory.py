@@ -5,7 +5,6 @@ def get_symmetory_for_anality_batch(black_board: int, white_board: int) -> tuple
     
     min(黒) -> min(白)
     """
-    # TODO: アクションプレイヤーを含めて一位にする必要あり
 
     symmetorys = get_symmetorys(black_board, white_board)
     # 1つ目の要素が最小のタプルを取得
