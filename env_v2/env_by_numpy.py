@@ -363,6 +363,8 @@ def step_parallel(states, dummy, out):
         np.array([0,0,0,0])
     )
     
+    ※ 外部の関数を使用することができないので本関数内に使用する関数を定義
+    
     args:
       states: [black_board, white_board, player_id, action]
     return:
