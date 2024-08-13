@@ -8,11 +8,7 @@ from env_v2.anality.batch import batch
 
 
 if __name__ == "__main__":
-    # not batch
-    # not_batch(8)
-    
     # batch
-    # run_v4(3)
     for i in range(2, 11):
         print("-----------start-----------")
         run_v4(i)
