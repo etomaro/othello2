@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 
 
-from env_v2.env_by_numpy import get_initial_board, get_actionables
+from env_v2.env_by_numpy import get_initial_board, get_actionables_parallel, step_parallel
 
 
 class TestEnv2ByNumpy(unittest.TestCase):
@@ -35,6 +35,29 @@ class TestEnv2ByNumpy(unittest.TestCase):
             [black_board2, white_board2, player_id2]
         ])
         #　実行
-        actionables = get_actionables(states)
+        actionables = get_actionables_parallel(states)
         exp = np.array([0x102004080000, 0x400140000])
         np.testing.assert_array_equal(exp,actionables)  # numpyのテスト関数(順序もテスト内)
+    
+    def test_step_parallel(self):
+        """
+        [テストデータ]
+        (black_board, white_board, player_id, action): (next_black_board, next_white_board, next_player_id)
+        1. 0x810000000, 0x1008000000, 0, 0x80000: 0x818080000, 0x1000000000, 1
+        2. 0x810000000, 0x1008000000, 0, 0x4000000: 0x81c000000, 0x1000000000, 1
+        3. 0x81c000000, 0x1000000000, 1, 0x40000: 0x814000000, 0x1008040000, 0
+        """
+        dummy = np.array([0,0,0])
+        states = np.array([
+            [0x810000000, 0x1008000000, 0, 0x80000],
+            [0x810000000, 0x1008000000, 0, 0x4000000],
+            [0x81c000000, 0x1000000000, 1, 0x40000]
+        ])
+        # 実行
+        next_states = step_parallel(states, dummy)
+        exp = np.array([
+            [0x818080000, 0x1000000000, 1],
+            [0x81c000000, 0x1000000000, 1],
+            [0x814000000, 0x1008040000, 0]
+        ])
+        np.testing.assert_array_equal(exp, next_states)
