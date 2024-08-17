@@ -313,7 +313,7 @@ def get_actions(states: list) -> list:
         # アクションを作成
         mask = 0x8000000000000000
         for _ in range(64):
-            if mask & legal != 0:
+            if (mask & legal) != 0:
                 actions.append(state+[mask])
             mask = mask >> 1
 

@@ -11,6 +11,7 @@ import msgpack
 import glob
 import os
 import numpy as np
+from numpy import int64
 
 from env_v2.anality.settings import REPORT_FOLDER, STATE_FILE_NAME, ANALITY_FILE_NAME, TMP_REPORT_FOLDER,\
     BATCH_NUM
@@ -41,7 +42,7 @@ def run(generation: int):
     
     start_time = time.time()
     if generation == 0:
-        next_states, cut_num = _calc_next_states_ini(generation)
+        next_states, cut_num = _calc_next_states_ini()
     else:
         # 1世代前の状態ファイルを読み取る
         states = _get_state_file(generation-1)
@@ -63,13 +64,14 @@ def _get_state_file(generation: int) -> np.ndarray:
     file_name = STATE_FILE_NAME.replace("GENERATION", str(generation))
     file_path = TMP_REPORT_FOLDER + file_name
 
-    with open(file_path, "r") as f:
-        rows = csv.reader(f)
-        states = np.array(rows)  # 1行当たり1つの項目のみ
+    states = np.loadtxt(file_path, delimiter=',', dtype=int64)
+    # 1次元の場合2次元に変換
+    if states.ndim == 1:
+        states = states.reshape(1, -1)
 
     return states
 
-def _calc_next_states_ini(generation: int) -> tuple:
+def _calc_next_states_ini() -> tuple:
     """世代0の状態を算出する
 
     Args:
@@ -87,7 +89,6 @@ def _calc_next_states_ini(generation: int) -> tuple:
     
 def _calc_next_states(generation: int, states: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """次の状態を算出する
-
     Args:
         generation: 算出する世代
         states (numpy.ndarray): 1世代前の状態
@@ -119,26 +120,21 @@ def _calc_next_states(generation: int, states: np.ndarray) -> tuple[np.ndarray, 
     
     print("全ての状態の算出終了!!!")
     
-        # ファイルを一括取得する
+    # ファイルを一括取得する
     files = glob.glob(f"env_v2/anality/report/tmp/{generation}/*")
     next_state_num = 0
     cut_num = 0  # 対称性でカットした回数
-    next_states = None
+    next_states_set = set() 
     for file in files:
         with open(file, "rb") as f:
             deserialized = msgpack.load(f, raw=False)
+            next_state_num += len(deserialized[0])
             cut_num += deserialized[1]
-            if next_states is not None:
-                next_states = np.concatenate([next_states, deserialized[0]])
-            else:
-                next_states = np.array(deserialized[0])
+            next_states_set |= set([tuple(state) for state in deserialized[0]])
     
-    # 重複を削除していない次の状態数
-    next_state_num = next_states.shape[0]
-    # 次の状態の重複を削除する
-    next_states = np.unique(next_states, axis=0)
-    cut_num += next_state_num - next_states.shape[0]
-    return next_states, cut_num
+    # print("next_states_set: ", next_states_set)
+    cut_num += next_state_num - len(next_states_set)
+    return next_states_set, cut_num
 
 @ray.remote(max_retries=-1)
 def _ray_calc_next_states(states: np.ndarray, index, generation):
@@ -147,51 +143,35 @@ def _ray_calc_next_states(states: np.ndarray, index, generation):
     
     1. ゲームが終了している場合除外する
     2. アクション可能ハンドを取得する
-    3. アクションを行う
-    4. 対称性を利用して除外する
+    3. アクションを行う(対称性も使用)
+    4. 同じ状態をカット
     5. 次の状態のリストに追加する
     """
+    print("_ray_calc_next_states called: ", index)
     # 1. ゲームが終了している場合除外する
+    # print("states.shape: ", states.shape)
     states = states[states[:, 2] != PLAYER_UNKNOW]
+    # print("states: ", states)
     # 2. アクション可能ハンドを取得する
-    actions = get_actions(list(states))
-    # 3. アクションを行う
-    next_states = step_parallel(np.array(actions))
-    
-    
-    
-    datas = set()
-    count_for_cut = 0
-    for state in states:
-        black_board, white_board, player_id = state
-        # ゲーム終了してる場合
-        if player_id == PLAYER_UNKNOW:
-            continue
-        
-        black_board, white_board, player_id =\
-            int(black_board), int(white_board), int(player_id)
-        
-        # 2. 状態数のアクション可能ハンドを取得する
-        actionables = get_actionables(black_board, white_board, player_id)
-        actionable_list = get_actionables_list(actionables)
-        
-        # 3. アクションを行い次の世代の状態を取得する
-        for action in actionable_list:
-            # アクション
-            next_black_board, next_white_board, next_player_id = step(black_board, white_board, player_id, action)
-            
-            # 対称性の中から1意となるように状態を変換
-            next_black_board, next_white_board = get_symmetory_for_anality_batch(next_black_board, next_white_board)
-            
-            # 状態作成
-            next_state = (next_black_board, next_white_board, next_player_id)
-            datas.add(next_state)
-            count_for_cut += 1
-    
-    cut_sym = count_for_cut - len(datas)
+    actions = get_actions(states.tolist())
+    # print("actions: ", actions)
+    # 3. アクションを行う(対称性も使用)
+    dummy = np.zeros(3, dtype=int64)
+    # print("dummy: ", dummy)
+    actions = np.array(actions)
+    next_states = step_parallel(actions, dummy)
+    # print("next_states: ", next_states)
+    # print("next_states.shape: ", next_states.shape)
+    # 4. 同じ状態をカット
+    num_next_states = next_states.shape[0]
+    next_states_unique = np.unique(next_states, axis=0)  # 次のstateで同じ状態または対称性により同じ状態をカット
+    cut_num = num_next_states - next_states_unique.shape[0]
     
     # メモリにデータを登録しないようにstorageに登録する
-    serialized = msgpack.packb((list(datas), cut_sym))
+    # print("next_states_unique: ", next_states_unique)
+    # print("next_states_unique.tolist(): ", next_states_unique.tolist())
+    time.sleep(10)
+    serialized = msgpack.packb((next_states_unique.tolist(), cut_num))
     folder_path = TMP_REPORT_FOLDER + str(generation)
     file_path = folder_path + f"/{index}.bin"
     if not os.path.isdir(folder_path):

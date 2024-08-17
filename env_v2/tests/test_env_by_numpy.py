@@ -84,11 +84,12 @@ class TestEnv2ByNumpy(unittest.TestCase):
         3. 0x81c000000, 0x1000000000, 1, 0x40000: 0x814000000, 0x1008040000, 0
         """
         dummy = np.array([0,0,0])
-        states = np.array([
+        states = [
             [0x810000000, 0x1008000000, 0, 0x80000],
             [0x810000000, 0x1008000000, 0, 0x4000000],
             [0x81c000000, 0x1000000000, 1, 0x40000]
-        ])
+        ]
+        states = np.array(states)
         # 実行
         next_states = step_parallel(states, dummy)
         # テスト
