@@ -1,10 +1,6 @@
 """
-2024/08/08 状態数を文字ではなく数値として保存する
+2024/08/14 numba+numpyでメモリ節約、高速化
 
-前: {BLACK_BOARD}_{WHITE_BOARD}_{PLAYER_ID}
-後: BLACK_BOARD, WHITE_BOARD, PLAYER_ID
-"""
-"""
 分散処理でバッチごとに処理
 世代ごとの状態数を算出する
 """
@@ -18,7 +14,7 @@ import numpy as np
 
 from env_v2.anality.settings import REPORT_FOLDER, STATE_FILE_NAME, ANALITY_FILE_NAME, TMP_REPORT_FOLDER,\
     BATCH_NUM
-from env_v2.env_for_anality import get_initial_board, get_actionables, step, get_actionables_list
+from env_v2.env_by_numpy import get_initial_board, get_actions, step_parallel
 from env_v2.policy.random_player import RandomPlayer
 from env_v2.policy.minimax_player import MiniMaxPlayer, AnalyticsInfo
 from env_v2.policy.negamax_player import NegaMaxPlayer
@@ -89,7 +85,7 @@ def _calc_next_states_ini(generation: int) -> tuple:
     
     return [[ini_black_board, ini_white_board, ini_player_id]], 0
     
-def _calc_next_states(generation: int, states: np.ndarray) -> tuple:
+def _calc_next_states(generation: int, states: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """次の状態を算出する
 
     Args:
@@ -97,8 +93,8 @@ def _calc_next_states(generation: int, states: np.ndarray) -> tuple:
         states (numpy.ndarray): 1世代前の状態
 
     Returns:
-        next_states: 次の状態
-        cut_sym: 対称性によりカットした数
+        next_states(2重リスト): 次の状態
+        cut_sym(1次元リスト): 対称性によりカットした数
     """
     ray.init()
     calc_state_num = states.shape[0]  # 計算する1つ前の世代のノード数
@@ -109,8 +105,9 @@ def _calc_next_states(generation: int, states: np.ndarray) -> tuple:
     # Queueにタスクをすべて投入する
     ray_ids = []
     for i in range(1, proc_num):
-        ray_ids.append(_ray_calc_next_states.remote(states[0: BATCH_NUM], i*BATCH_NUM, generation))
-        del states[:BATCH_NUM]
+        ray_ids.append(_ray_calc_next_states.remote(states[0: BATCH_NUM][:], i*BATCH_NUM, generation))
+        # TODO: np.deleteは新しいオブジェクトを生成するためメモリ効率悪い
+        states =  np.delete(states, slice(0,BATCH_NUM), axis=0)
     if len(states) != 0:
         ray_ids.append(_ray_calc_next_states.remote(states, calc_state_num, generation))
     del states
@@ -124,21 +121,27 @@ def _calc_next_states(generation: int, states: np.ndarray) -> tuple:
     
         # ファイルを一括取得する
     files = glob.glob(f"env_v2/anality/report/tmp/{generation}/*")
-    state_num = 0
+    next_state_num = 0
     cut_num = 0  # 対称性でカットした回数
-    next_states_set = set()
+    next_states = None
     for file in files:
         with open(file, "rb") as f:
             deserialized = msgpack.load(f, raw=False)
-            state_num += len(deserialized[0])
             cut_num += deserialized[1]
-            next_states_set |= set([tuple(state) for state in deserialized[0]])
+            if next_states is not None:
+                next_states = np.concatenate([next_states, deserialized[0]])
+            else:
+                next_states = np.array(deserialized[0])
     
-    cut_num += state_num - len(next_states_set)
-    return next_states_set, cut_num
+    # 重複を削除していない次の状態数
+    next_state_num = next_states.shape[0]
+    # 次の状態の重複を削除する
+    next_states = np.unique(next_states, axis=0)
+    cut_num += next_state_num - next_states.shape[0]
+    return next_states, cut_num
 
 @ray.remote(max_retries=-1)
-def _ray_calc_next_states(states: list[str], index, generation) -> set[str]:
+def _ray_calc_next_states(states: np.ndarray, index, generation):
     """
     次の状態数を算出する
     
@@ -148,6 +151,15 @@ def _ray_calc_next_states(states: list[str], index, generation) -> set[str]:
     4. 対称性を利用して除外する
     5. 次の状態のリストに追加する
     """
+    # 1. ゲームが終了している場合除外する
+    states = states[states[:, 2] != PLAYER_UNKNOW]
+    # 2. アクション可能ハンドを取得する
+    actions = get_actions(list(states))
+    # 3. アクションを行う
+    next_states = step_parallel(np.array(actions))
+    
+    
+    
     datas = set()
     count_for_cut = 0
     for state in states:
