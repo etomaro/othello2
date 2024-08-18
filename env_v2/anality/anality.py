@@ -10,7 +10,7 @@ from env_v2.anality.batch import batch
 
 if __name__ == "__main__":
     # batch
-    for i in range(3):
+    for i in range(10,11):
         print("-----------start-----------")
         run_v5(i)
         print(f"{i} done")

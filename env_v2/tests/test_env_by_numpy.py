@@ -2,7 +2,6 @@ import pytest
 import unittest
 import numpy as np
 
-
 from env_v2.env_by_numpy import get_actionables_parallel, step_parallel, get_actions
 from env_v2.symmetory.symmetory import get_symmetory_for_anality_batch
 
@@ -33,10 +32,10 @@ class TestEnv2ByNumpy(unittest.TestCase):
         states = np.array([
             [black_board1, white_board1, player_id1],
             [black_board2, white_board2, player_id2]
-        ])
+        ], dtype=np.uint64)
         #　実行
         actionables = get_actionables_parallel(states)
-        exp = np.array([0x102004080000, 0x400140000])
+        exp = np.array([0x102004080000, 0x400140000], dtype=np.uint64)
         np.testing.assert_array_equal(exp,actionables)  # numpyのテスト関数(順序もテスト内)
     
     def test_get_actions(self):
@@ -83,13 +82,13 @@ class TestEnv2ByNumpy(unittest.TestCase):
         2. 0x810000000, 0x1008000000, 0, 0x4000000: 0x81c000000, 0x1000000000, 1
         3. 0x81c000000, 0x1000000000, 1, 0x40000: 0x814000000, 0x1008040000, 0
         """
-        dummy = np.array([0,0,0])
+        dummy = np.array([0,0,0], dtype=np.uint64)
         states = [
             [0x810000000, 0x1008000000, 0, 0x80000],
             [0x810000000, 0x1008000000, 0, 0x4000000],
             [0x81c000000, 0x1000000000, 1, 0x40000]
         ]
-        states = np.array(states)
+        states = np.array(states, dtype=np.uint64)
         # 実行
         next_states = step_parallel(states, dummy)
         # テスト
@@ -101,6 +100,6 @@ class TestEnv2ByNumpy(unittest.TestCase):
             [exp_bb_board1, exp_wb_board1, 1],
             [exp_bb_board2, exp_wb_board2, 1],
             [exp_bb_board3, exp_wb_board3, 0],
-        ])  
+        ], dtype=np.uint64)  
         np.testing.assert_array_equal(exp, next_states)
 

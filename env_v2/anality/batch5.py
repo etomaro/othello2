@@ -64,7 +64,7 @@ def _get_state_file(generation: int) -> np.ndarray:
     file_name = STATE_FILE_NAME.replace("GENERATION", str(generation))
     file_path = TMP_REPORT_FOLDER + file_name
 
-    states = np.loadtxt(file_path, delimiter=',', dtype=int64)
+    states = np.loadtxt(file_path, delimiter=',', dtype=np.uint64)
     # 1次元の場合2次元に変換
     if states.ndim == 1:
         states = states.reshape(1, -1)
@@ -156,9 +156,9 @@ def _ray_calc_next_states(states: np.ndarray, index, generation):
     actions = get_actions(states.tolist())
     # print("actions: ", actions)
     # 3. アクションを行う(対称性も使用)
-    dummy = np.zeros(3, dtype=int64)
+    dummy = np.zeros(3, dtype=np.uint64)
     # print("dummy: ", dummy)
-    actions = np.array(actions)
+    actions = np.array(actions, dtype=np.uint64)
     next_states = step_parallel(actions, dummy)
     # print("next_states: ", next_states)
     # print("next_states.shape: ", next_states.shape)
@@ -170,7 +170,6 @@ def _ray_calc_next_states(states: np.ndarray, index, generation):
     # メモリにデータを登録しないようにstorageに登録する
     # print("next_states_unique: ", next_states_unique)
     # print("next_states_unique.tolist(): ", next_states_unique.tolist())
-    time.sleep(10)
     serialized = msgpack.packb((next_states_unique.tolist(), cut_num))
     folder_path = TMP_REPORT_FOLDER + str(generation)
     file_path = folder_path + f"/{index}.bin"
