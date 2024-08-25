@@ -30,7 +30,7 @@ def get_initial_board() -> tuple:
     """
     return 0x0000000810000000, 0x0000001008000000, PLAYER_BLACK
 
-def get_actions(states: list) -> list:
+def get_actions(states: np.ndarray) -> np.ndarray:
     """
     アクション可能な座標を算出
     
@@ -97,10 +97,11 @@ def get_actions(states: list) -> list:
     actions = []
     for state in states:
         # 空白の場所
-        blank_board = ~(state[0] | state[1])
+        bb, wb, pi = int(state[0]), int(state[1]), int(state[2])
+        blank_board = ~(bb | wb)
         
-        oppo_board = state[1] if state[2] == PLAYER_BLACK else state[0]
-        my_board = state[1] if state[2] != PLAYER_BLACK else state[0]
+        oppo_board = wb if pi == PLAYER_BLACK else bb
+        my_board = wb if pi != PLAYER_BLACK else bb
         
         # 相手の位置かつマスク
         oppo_mask_lr = oppo_board & mask_lr
@@ -176,12 +177,13 @@ def get_actions(states: list) -> list:
         
         # アクションを作成
         mask = 0x8000000000000000
-        for _ in range(64):
+        for _ in range(64):  
             if (mask & legal) != 0:
-                actions.append(state+[mask])
+                actions.append([bb,wb,pi,mask])
             mask = mask >> 1
-
-    return actions
+    
+    print("get actions calc done")
+    return np.array(actions, dtype=np.uint64)
 
 @guvectorize([(uint64[:], uint64[:])], '(n)->()', target='parallel')
 def get_actionables_parallel(states, res):
@@ -571,69 +573,6 @@ def step_parallel(actions, dummy, out):
         legal = legal_left | legal_right | legal_up | legal_down | legal_lu | legal_ru | legal_ld | legal_rd
 
         return legal
-    
-    # def get_symmetory(black_board: int, white_board: int) -> tuple:
-    #     """
-    #     対称性を使用して一意となるように1つ返す
-        
-    #     min(黒) -> min(白)
-    #     """
-    #     symmetorys = [(black_board, white_board)]
-    #     symmetorys.append((_get_y(black_board), _get_y(white_board)))
-    #     symmetorys.append((_get_x(black_board), _get_x(white_board)))
-    #     symmetorys.append((_get_right_z(black_board), _get_right_z(white_board)))
-    #     symmetorys.append((_get_left_z(black_board), _get_left_z(white_board)))
-    #     symmetorys.append((_get_rotato90(black_board), _get_rotato90(white_board)))
-    #     symmetorys.append((_get_rotato180(black_board), _get_rotato180(white_board)))
-    #     symmetorys.append((_get_rotato270(black_board), _get_rotato270(white_board)))
-
-    #     symmetorys = get_symmetorys(black_board, white_board)
-    #     # 1つ目の要素が最小のタプルを取得
-    #     black_min = min(symmetorys, key=lambda x: x[0])
-    #     # 1つ目の要素が最小の要素が複数ある場合、2つ目の要素が小さいタプルを取得
-    #     black_mins = [symmetory for symmetory in symmetorys if symmetory[0] == black_min[0]]
-    #     result_tuple = min(black_mins, key=lambda x: x[1])
-        
-    #     return result_tuple
-
-    # def get_symmetorys(black_board:int, white_board:int) -> list[tuple]:
-    #     """
-    #     対称性
-    #     0. base
-    #     1. y軸
-    #     2. x軸
-    #     3. 右斜め軸
-    #     4. 左斜め軸
-    #     5. 90度回転
-    #     6. 180度回転
-    #     7. 270度回転
-        
-    #     可能性
-    #     y->x: 180度回転と同じ
-    #     y->90: 右斜めz軸反転
-    #     y->180: x軸反転
-    #     y->270: 左斜め反転
-    #     x->90: 左斜めz軸反転
-    #     x->180: y軸反転
-    #     x->270: 右斜めz軸反転
-    #     zr->90: x軸反転
-    #     zr->180: zl
-    #     zr->270: y軸反転
-    #     zl->90: y軸反転
-    #     zl->180: zr
-    #     zl->270: x軸反転
-    #     zr->zl: 180度
-    #     """
-    #     symmetorys = [(black_board, white_board)]
-    #     symmetorys.append((_get_y(black_board), _get_y(white_board)))
-    #     symmetorys.append((_get_x(black_board), _get_x(white_board)))
-    #     symmetorys.append((_get_right_z(black_board), _get_right_z(white_board)))
-    #     symmetorys.append((_get_left_z(black_board), _get_left_z(white_board)))
-    #     symmetorys.append((_get_rotato90(black_board), _get_rotato90(white_board)))
-    #     symmetorys.append((_get_rotato180(black_board), _get_rotato180(white_board)))
-    #     symmetorys.append((_get_rotato270(black_board), _get_rotato270(white_board)))
-        
-    #     return symmetorys
 
     def _get_y(board: int) -> int:
         """
@@ -853,6 +792,7 @@ def step_parallel(actions, dummy, out):
     # 1つ目の要素が最小の要素が複数ある場合、2つ目の要素が小さいタプルを取得
     sym_black_board = next_black_board
     sym_white_board = next_white_board
+
     # 1. get_y
     tmp_black_board = _get_y(next_black_board)
     if tmp_black_board < sym_black_board:

@@ -177,7 +177,7 @@ def _ray_calc_next_states(states: list[str], index, generation) -> set[str]:
     
     cut_sym = count_for_cut - len(datas)
     
-    # TODO: 保存方法をどうするか
+    # TODO: 保存方法をどうする````か
     
     # メモリにデータを登録しないようにstorageに登録する
     serialized = msgpack.packb((list(datas), cut_sym))

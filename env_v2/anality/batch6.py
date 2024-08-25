@@ -1,5 +1,5 @@
 """
-2024/08/14 numba+numpyでメモリ節約、高速化
+2024/08/25 numpy形式でファイルを保存
 
 分散処理でバッチごとに処理
 世代ごとの状態数を算出する
@@ -14,7 +14,7 @@ import numpy as np
 from numpy import int64
 
 from env_v2.anality.settings import REPORT_FOLDER, STATE_FILE_NAME, ANALITY_FILE_NAME, TMP_REPORT_FOLDER,\
-    BATCH_NUM
+    BATCH_NUM, STATE_FILE_NAME2
 from env_v2.env_by_numpy import get_initial_board, get_actions, step_parallel
 from env_v2.policy.random_player import RandomPlayer
 from env_v2.policy.minimax_player import MiniMaxPlayer, AnalyticsInfo
@@ -56,20 +56,17 @@ def run(generation: int):
     _write_state_file(generation, next_states)
     
     # 4. 分析ファイル作成
-    _write_anality_file(generation, len(next_states), cut_num, calc_time)
+    _write_anality_file(generation, next_states.shape[0], cut_num, calc_time)
     
 def _get_state_file(generation: int) -> np.ndarray:
     """
     returns:
         datas(numpy.ndarray) 状態の2重配列
     """
-    file_name = STATE_FILE_NAME.replace("GENERATION", str(generation))
+    file_name = STATE_FILE_NAME2.replace("GENERATION", str(generation))
     file_path = TMP_REPORT_FOLDER + file_name
 
-    states = np.loadtxt(file_path, delimiter=',', dtype=np.uint64)
-    # 1次元の場合2次元に変換
-    if states.ndim == 1:
-        states = states.reshape(1, -1)
+    states = np.load(file_path)
 
     return states
 
@@ -87,7 +84,7 @@ def _calc_next_states_ini() -> tuple:
     ini_white_board = 0x0000001008000000
     ini_player_id = PLAYER_BLACK
     
-    return [[ini_black_board, ini_white_board, ini_player_id]], 0
+    return np.array([[ini_black_board, ini_white_board, ini_player_id]],dtype=np.uint64), 0
 
 def _calc_next_states(generation: int, states: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """次の状態を算出する
@@ -133,17 +130,24 @@ def _calc_next_states(generation: int, states: np.ndarray) -> tuple[np.ndarray, 
     files = glob.glob(f"env_v2/anality/report/tmp/{generation}/*")
     next_state_num = 0
     cut_num = 0  # 対称性でカットした回数
-    next_states_set = set() 
+    next_states = None
     for file in files:
-        with open(file, "rb") as f:
-            deserialized = msgpack.load(f, raw=False)
-            next_state_num += len(deserialized[0])
-            cut_num += deserialized[1]
-            next_states_set |= set([tuple(state) for state in deserialized[0]])
+        # ファイルパスから拡張子を除いたファイル名を取得
+        file_name = os.path.splitext(os.path.basename(file))[0]
+        _, tmp_cut_num = file_name.split("_")
+        cut_num+=int(tmp_cut_num)
+        # ファイル読み込み
+        tmp_next_states = np.load(file)
+        next_state_num += tmp_next_states.shape[0]
+        if next_states is None:
+            next_states = tmp_next_states
+        else:
+            next_states = np.concatenate([next_states, tmp_next_states])
     
     # print("next_states_set: ", next_states_set)
-    cut_num += next_state_num - len(next_states_set)
-    return next_states_set, cut_num
+    cut_num += next_state_num - next_states.shape[0]
+    next_states = np.unique(next_states, axis=0)  # 次のstateで同じ状態または対称性により同じ状態をカット
+    return next_states, cut_num
 
 @ray.remote(max_retries=-1)
 def _ray_calc_next_states(states: np.ndarray, index, generation):
@@ -176,32 +180,28 @@ def _ray_calc_next_states(states: np.ndarray, index, generation):
     
     # 4. 同じ状態をカット
     num_next_states = next_states.shape[0]
-    next_states_unique = np.unique(next_states, axis=0)  # 次のstateで同じ状態または対称性により同じ状態をカット
-    cut_num = num_next_states - next_states_unique.shape[0]
+    next_states = np.unique(next_states, axis=0)  # 次のstateで同じ状態または対称性により同じ状態をカット
+    cut_num = num_next_states - next_states.shape[0]
     
     # メモリにデータを登録しないようにstorageに登録する
     # print("next_states_unique: ", next_states_unique)
     # print("next_states_unique.tolist(): ", next_states_unique.tolist())
-    serialized = msgpack.packb((next_states_unique.tolist(), cut_num))
     folder_path = TMP_REPORT_FOLDER + str(generation)
-    file_path = folder_path + f"/{index}.bin"
+    file_path = folder_path + f"/{index}_{cut_num}.npy"  # {index}_{cut_num}
     if not os.path.isdir(folder_path):
         os.makedirs(folder_path)
-    with open(file_path, "wb") as f:
-        f.write(serialized)
+    np.save(file_path, next_states)
         
     print(f"index: {index}. next state calc done")
 
-def _write_state_file(generation: int, next_states: list[str]) -> None:
+def _write_state_file(generation: int, next_states: np.ndarray) -> None:
     """状態ファイル作成
     
     """
     start_time = time.time()
     
-    file_path = TMP_REPORT_FOLDER + STATE_FILE_NAME.replace("GENERATION", str(generation))
-    with open(file_path, "w") as f:
-        writer = csv.writer(f)
-        writer.writerows(next_states)
+    file_path = TMP_REPORT_FOLDER + STATE_FILE_NAME2.replace("GENERATION", str(generation))
+    np.save(file_path, next_states)
     
     print(f"状態ファイル作成時間: {time.time()-start_time}")
     

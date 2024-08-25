@@ -57,13 +57,13 @@ class TestEnv2ByNumpy(unittest.TestCase):
         """
         black_board1, white_board1, player_id1 = 0x810000000, 0x1008000000, 0
         black_board2, white_board2, player_id2 = 0x818080000, 0x1000000000, 1
-        states = [
+        states = np.array([
             [black_board1, white_board1, player_id1],
             [black_board2, white_board2, player_id2]
-        ]
+        ], np.uint64)
         #　実行
         actions = get_actions(states)
-        exp = [
+        exp = np.array([
             [0x810000000, 0x1008000000, 0, 0b100000000000000000000000000000000000000000000],
             [0x810000000, 0x1008000000, 0, 0b000000010000000000000000000000000000000000000],
             [0x810000000, 0x1008000000, 0, 0b000000000000000000100000000000000000000000000],
@@ -71,8 +71,8 @@ class TestEnv2ByNumpy(unittest.TestCase):
             [0x818080000, 0x1000000000, 1, 0b10000000000000000000000000000000000],
             [0x818080000, 0x1000000000, 1, 0b00000000000000100000000000000000000],
             [0x818080000, 0x1000000000, 1, 0b00000000000000001000000000000000000],
-        ]
-        self.assertEqual(exp, actions)  # numpyのテスト関数(順序もテスト内)
+        ], np.uint64)
+        np.testing.assert_array_equal(exp, actions)  # numpyのテスト関数(順序もテスト内)
     
     def test_step_parallel(self):
         """
