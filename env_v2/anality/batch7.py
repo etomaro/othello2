@@ -1,5 +1,5 @@
 """
-2024/08/25 numpy形式でファイルを保存
+2024/08/26 dask使用
 
 分散処理でバッチごとに処理
 世代ごとの状態数を算出する
@@ -12,7 +12,7 @@ import glob
 import os
 import numpy as np
 from numpy import int64
-
+import dask.array as da
 from env_v2.anality.settings import REPORT_FOLDER, STATE_FILE_NAME, ANALITY_FILE_NAME, TMP_REPORT_FOLDER,\
     BATCH_NUM, STATE_FILE_NAME2
 from env_v2.env_by_numpy import get_initial_board, get_actions, step_parallel
@@ -61,7 +61,7 @@ def run(generation: int):
     # 4. 分析ファイル作成
     _write_anality_file(generation, next_states.shape[0], cut_num, total_time, calc_time, sum_states_time)
     
-def _get_state_file(generation: int) -> np.ndarray:
+def _get_state_file(generation: int) -> da.Array:
     """
     returns:
         datas(numpy.ndarray) 状態の2重配列
@@ -70,7 +70,8 @@ def _get_state_file(generation: int) -> np.ndarray:
     file_path = TMP_REPORT_FOLDER + file_name
 
     states = np.load(file_path)
-
+    states = da.from_array(states, chunks="auto")
+    
     return states
 
 def _calc_next_states_ini() -> tuple:
@@ -89,7 +90,7 @@ def _calc_next_states_ini() -> tuple:
     
     return np.array([[ini_black_board, ini_white_board, ini_player_id]],dtype=np.uint64), 0
 
-def _calc_next_states(generation: int, states: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+def _calc_next_states(generation: int, states: da.Array) -> tuple[np.ndarray, np.ndarray]:
     """次の状態を算出する
     Args:
         generation: 算出する世代
@@ -104,9 +105,9 @@ def _calc_next_states(generation: int, states: np.ndarray) -> tuple[np.ndarray, 
     
     context = ray.init()
     print("dashboard: ", context)
-    calc_state_num = states.shape[0]  # 計算する1つ前の世代のノード数
+    calc_state_num = states.compute().shape[0]  # 計算する1つ前の世代のノード数
     proc_num = calc_state_num // BATCH_NUM + 1  # 計算するプロセス数
-    
+    print("proc_num: ", proc_num)
     print(f"算出するノード数: {calc_state_num}")
     
     # Queueにタスクをすべて投入する
@@ -114,13 +115,13 @@ def _calc_next_states(generation: int, states: np.ndarray) -> tuple[np.ndarray, 
     for i in range(1, proc_num):
         # putを使うことでメモリ節約になるらしい
         # https://yuiga.dev/blog/posts/rayremote%E3%81%8C%E3%83%A1%E3%83%A2%E3%83%AA%E3%82%92%E5%A4%A7%E9%87%8F%E3%81%AB%E9%A3%9F%E3%81%86%E6%99%82%E3%81%AFray.put%E3%82%92%E4%BD%BF%E3%81%8A%E3%81%86/
-        ray_id = ray.put(states[0: BATCH_NUM][:])
-        ray_ids.append(_ray_calc_next_states.remote(ray_id, i*BATCH_NUM, generation))
+        ray_id = ray.put(states[i*BATCH_NUM: (i+1)*BATCH_NUM][:])
+        ray_ids.append(_ray_calc_next_states.remote(ray_id.compute(), i*BATCH_NUM, generation))
         # TODO: np.deleteは新しいオブジェクトを生成するためメモリ効率悪い
-        states =  np.delete(states, slice(0,BATCH_NUM), axis=0)
-    if len(states) != 0:
+        # states =  np.delete(states, slice(0,BATCH_NUM), axis=0)
+    if states.compute().shape[0] != 0:
         ray_id = ray.put(states[0: BATCH_NUM][:])
-        ray_ids.append(_ray_calc_next_states.remote(ray_id, calc_state_num, generation))
+        ray_ids.append(_ray_calc_next_states.remote(ray_id.compute(), calc_state_num, generation))
     del states
     print("非同期ですべての次の状態数を算出する処理を投下済み")
     

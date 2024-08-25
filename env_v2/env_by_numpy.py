@@ -13,7 +13,6 @@
 import numpy as np
 from numba import jit, vectorize, prange, guvectorize, uint64
 
-
 PLAYER_BLACK = 0
 PLAYER_WHITE = 1
 PLAYER_UNKNOW = 2  # ゲーム終了(誰が勝ったかの状態は持たない)
