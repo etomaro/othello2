@@ -1,5 +1,5 @@
 """
-2024/08/26 dask使用
+2024/08/26 HDFを使用
 
 分散処理でバッチごとに処理
 世代ごとの状態数を算出する
@@ -11,10 +11,11 @@ import msgpack
 import glob
 import os
 import numpy as np
+import h5py
 from numpy import int64
 import dask.array as da
 from env_v2.anality.settings import REPORT_FOLDER, STATE_FILE_NAME, ANALITY_FILE_NAME, TMP_REPORT_FOLDER,\
-    BATCH_NUM, STATE_FILE_NAME2
+    BATCH_NUM, STATE_FILE_NAME2, STATE_FILE_NAME3
 from env_v2.env_by_numpy import get_initial_board, get_actions, step_parallel
 from env_v2.policy.random_player import RandomPlayer
 from env_v2.policy.minimax_player import MiniMaxPlayer, AnalyticsInfo
@@ -44,33 +45,38 @@ def run(generation: int):
     
     start_time = time.time()
     if generation == 0:
-        next_states, cut_num = _calc_next_states_ini()
+        calc_time = 0
+        calc_sum_time = 0
+        # 3. 状態ファイル作成
+        next_state_num = _write_state_file_init()
     else:
         # 1世代前の状態ファイルを読み取る
         states = _get_state_file(generation-1)
         # 2. 状態の算出
-        next_states, cut_num, calc_end_time, sum_states_end_time = _calc_next_states(generation, states)
-    end_time = time.time()
-    total_time = end_time - start_time
-    calc_time = calc_end_time - start_time
-    sum_states_time = sum_states_end_time - start_time
-    
-    # 3. 状態ファイル作成
-    _write_state_file(generation, next_states)
+        calc_start_time = time.time()
+        _calc_next_states(generation, states)
+        calc_time = time.time() - calc_start_time
+        # 3. 状態ファイル作成
+        calc_sum_start_time = time.time()
+        next_state_num = _write_state_file(generation)
+        calc_sum_time = time.time() - calc_sum_start_time
     
     # 4. 分析ファイル作成
-    _write_anality_file(generation, next_states.shape[0], cut_num, total_time, calc_time, sum_states_time)
+    total_time = time.time() - start_time
+    _write_anality_file(generation, next_state_num, total_time, calc_time, calc_sum_time)
     
 def _get_state_file(generation: int) -> da.Array:
     """
     returns:
         datas(numpy.ndarray) 状態の2重配列
     """
-    file_name = STATE_FILE_NAME2.replace("GENERATION", str(generation))
+    file_name = STATE_FILE_NAME3.replace("GENERATION", str(generation))
     file_path = TMP_REPORT_FOLDER + file_name
 
-    states = np.load(file_path)
-    states = da.from_array(states)
+    # hd5を読み取り
+    with h5py.File(file_path, "r") as f:
+        dataset = f["state"]
+        states = da.from_array(dataset[...])
     
     return states
 
@@ -135,31 +141,6 @@ def _calc_next_states(generation: int, states: da.Array) -> tuple[np.ndarray, np
     del ray_ids
     
     print("全ての状態の算出終了!!!")
-    calc_end_time = time.time()
-    
-    # ファイルを一括取得する
-    files = glob.glob(f"env_v2/anality/report/tmp/{generation}/*")
-    next_state_num = 0
-    cut_num = 0  # 対称性でカットした回数
-    next_states = None
-    for file in files:
-        # ファイルパスから拡張子を除いたファイル名を取得
-        file_name = os.path.splitext(os.path.basename(file))[0]
-        _, tmp_cut_num = file_name.split("_")
-        cut_num+=int(tmp_cut_num)
-        # ファイル読み込み
-        tmp_next_states = np.load(file)
-        next_state_num += tmp_next_states.shape[0]
-        if next_states is None:
-            next_states = tmp_next_states
-        else:
-            next_states = np.concatenate([next_states, tmp_next_states])
-    
-    # print("next_states_set: ", next_states_set)
-    cut_num += next_state_num - next_states.shape[0]
-    next_states = np.unique(next_states, axis=0)  # 次のstateで同じ状態または対称性により同じ状態をカット
-    sum_states_end_time = time.time()
-    return next_states, cut_num, calc_end_time, sum_states_end_time
 
 @ray.remote(max_retries=-1)
 def _ray_calc_next_states(states: np.ndarray, index, generation):
@@ -211,27 +192,80 @@ def _ray_calc_next_states(states: np.ndarray, index, generation):
         
     print(f"index: {index}. next state calc done")
 
-def _write_state_file(generation: int, next_states: np.ndarray) -> None:
+def _write_state_file(generation: int) ->  int:
     """状態ファイル作成
     
+    returns:
+      next_state_num: 算出した世代の状態の個数
     """
-    start_time = time.time()
+    # stateファイルを作成する
+    state_file_path = TMP_REPORT_FOLDER + STATE_FILE_NAME3.replace("GENERATION", str(generation))
+    with h5py.File(state_file_path, "w") as f:
+        # データセットを作成する
+        f.create_dataset("state", (0, 3), maxshape=(None, 3), chunks=(100000, 3), dtype=np.uint64)
     
-    file_path = TMP_REPORT_FOLDER + STATE_FILE_NAME2.replace("GENERATION", str(generation))
-    np.save(file_path, next_states)
+    # ファイルを一括取得する
+    files = glob.glob(f"env_v2/anality/report/tmp/{generation}/*")
+    next_state_num = 0
+    cut_num = 0  # 対称性でカットした回数
+    for i, file in enumerate(files):
+        # ファイルパスから拡張子を除いたファイル名を取得
+        file_name = os.path.splitext(os.path.basename(file))[0]
+        _, tmp_cut_num = file_name.split("_")
+        cut_num+=int(tmp_cut_num)
+        # ファイル読み込み
+        states = np.load(file)
+        next_state_num += states.shape[0]
+        
+        # 他のファイルから重複する値を削除する
+        for other_file in files[i+1:]:
+            other_state = np.load(other_file)
+            # 重複している値を除いてファイルを上書き保存する
+            other_state_not_duplicate = np.array(set(other_state) - set(states), dtype=np.uint64)
+            np.save(other_file, other_state_not_duplicate)
+        
+        # uniqueな値を登録する
+        with h5py.File(state_file_path, "a") as f:
+            dset = f["state"]
+            # サイズを変更する
+            dset.resize(dset.shape[0] + states.shape[0], axis=0)
+            # 追加
+            dset[dset.shpae[0]:] = states
     
-    print(f"状態ファイル作成時間: {time.time()-start_time}")
+    return next_state_num
     
+def _write_state_file_init() ->  int:
+    """状態ファイル作成
     
-def _write_anality_file(generation: int, state_num: int, cut_num: int, total_time: int, calc_time: int, sum_states_time: int) -> None:
+    returns:
+      next_state_num: 算出した世代の状態の個数
+    """
+    generation = 0
+    
+    # stateファイルを作成する
+    state_file_path = TMP_REPORT_FOLDER + STATE_FILE_NAME3.replace("GENERATION", str(generation))
+    with h5py.File(state_file_path, "w") as f:
+        # データセットを作成する
+        dset = f.create_dataset("state", (0, 3), maxshape=(None, 3), chunks=(100000, 3), dtype=np.uint64)
+        
+        ini_black_board = 0x0000000810000000
+        ini_white_board = 0x0000001008000000
+        ini_player_id = PLAYER_BLACK
+    
+        ini_states = np.array([[ini_black_board, ini_white_board, ini_player_id]],dtype=np.uint64), 0
+        dset[...] = ini_states
+    
+    return 1
+
+def _write_anality_file(generation: int, state_num: int, total_time: int, calc_time: int, calc_sum_time: int) -> None:
     """分析ファイル作成
     
     """
-    HEADERS = ["状態数", "対称性カット数", "Total計算時間", "次の状態算出までの時間", "次の状態を一括するまでの時間"]
+    HEADERS = ["状態数", "Total計算時間", "次の状態算出までの時間", "次の状態を一括するまでの時間"]
     
     file_path = TMP_REPORT_FOLDER + ANALITY_FILE_NAME.replace("GENERATION", str(generation))
     with open(file_path, "w") as f:
         writer = csv.writer(f)
         writer.writerow(HEADERS)
-        writer.writerow([state_num, cut_num, total_time, calc_time, sum_states_time])
+        writer.writerow([state_num, total_time, calc_time, calc_sum_time])
     
