@@ -352,7 +352,9 @@ def step_parallel(actions, dummy, out):
     args:
       actions: [black_board, white_board, player_id, action]
     return:
-      next_states[next_black_board, next_white_board, next_player]
+      next_states: [next_black_board, next_white_board, next_player]
+      
+      ※ 戻り値が1つの場合1次元配列になるので注意!!!
     """
     def _set_stone(black_board: int, white_board: int, player_id: int, action: int) -> tuple[int, int]:
         """

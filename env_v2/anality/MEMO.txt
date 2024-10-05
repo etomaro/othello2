@@ -19,3 +19,11 @@
 
 ・remote時に[(memory=2 * 1024 * 1024 * 1024)]をしようすると10世代を計算する際に2.5倍時間がかかった(109s->259s)
   https://docs.ray.io/en/latest/ray-core/patterns/limit-running-tasks.html#core-patterns-limit-running-tasks
+
+
+  ・PCのメモリを開放してanalityタスクを行う方法
+    vscodeはメモリを多く使用するのでタスク終了
+    powershellを管理者権限で実行して下記を実行してメモリを開放する
+      wsl --shutdown
+    ubuntuから下記を実行してanalityをする
+      /home/kaito/backenv/bin/python /home/kaito/othello2/env_v2/anality/anality.py

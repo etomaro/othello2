@@ -13,7 +13,7 @@ from env_v2.anality.batch import batch
 
 if __name__ == "__main__":
     # batch
-    for i in range(0):
+    for i in range(10, 13):
         print("-----------start-----------")
         run_v8(i)
         print(f"{i} done")

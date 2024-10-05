@@ -112,6 +112,7 @@ def _calc_next_states(generation: int, states: da.Array) -> tuple[np.ndarray, np
     context = ray.init()
     print("dashboard: ", context)
     calc_state_num = states.compute_chunk_sizes().shape[0]  # 計算する1つ前の世代のノード数
+    print("calc_state_num: ", calc_state_num)
     proc_num = calc_state_num // BATCH_NUM + 1  # 計算するプロセス数
     print("proc_num: ", proc_num)
     print(f"算出するノード数: {calc_state_num}")
@@ -122,13 +123,13 @@ def _calc_next_states(generation: int, states: da.Array) -> tuple[np.ndarray, np
     for _ in range(1, proc_num):
         # putを使うことでメモリ節約になるらしい
         # https://yuiga.dev/blog/posts/rayremote%E3%81%8C%E3%83%A1%E3%83%A2%E3%83%AA%E3%82%92%E5%A4%A7%E9%87%8F%E3%81%AB%E9%A3%9F%E3%81%86%E6%99%82%E3%81%AFray.put%E3%82%92%E4%BD%BF%E3%81%8A%E3%81%86/
-        ray_id = ray.put(states[index: index+BATCH_NUM][:].compute_chunk_sizes())
+        ray_id = ray.put(states[index: index+BATCH_NUM][:].compute())
         ray_ids.append(_ray_calc_next_states.remote(ray_id, index+BATCH_NUM, generation))
         index += BATCH_NUM
         # TODO: np.deleteは新しいオブジェクトを生成するためメモリ効率悪い
         # states =  np.delete(states, slice(0,BATCH_NUM), axis=0)
     try:
-        ray_id = ray.put(states[index:][:].compute_chunk_sizes())
+        ray_id = ray.put(states[index:][:].compute())
         ray_ids.append(_ray_calc_next_states.remote(ray_id, calc_state_num, generation))
     except IndexError:
         pass
@@ -154,8 +155,9 @@ def _ray_calc_next_states(states: np.ndarray, index, generation):
     5. 次の状態のリストに追加する
     """
     print("_ray_calc_next_states called: ", index)
+    print("states type: ", type(states))
+    print("states num: ", states.shape[0])
     # 2. アクション可能ハンドを取得する
-    # TODO: メモリ節約のためnumpy化したい
     actions = get_actions(states)
     # メモリ削減用
     del states
@@ -164,6 +166,9 @@ def _ray_calc_next_states(states: np.ndarray, index, generation):
     dummy = np.zeros(3, dtype=np.uint64)
     # print("dummy: ", dummy)
     next_states = step_parallel(actions, dummy)
+    # 要素が1つの場合1次元配列になるので注意
+    if next_states.ndim == 1:
+        next_states = next_states.reshape(1,3)
     
     # メモリ削減用
     del actions
@@ -204,6 +209,7 @@ def _write_state_file(generation: int) ->  int:
         # データセットを作成する
         f.create_dataset("state", (0, 3), maxshape=(None, 3), chunks=(100000, 3), dtype=np.uint64)
     
+    # TODO: batchごとではなくもう少し大きいサイズでやった方が効率的
     # ファイルを一括取得する
     files = glob.glob(f"env_v2/anality/report/tmp/{generation}/*")
     next_state_num = 0
@@ -216,21 +222,30 @@ def _write_state_file(generation: int) ->  int:
         # ファイル読み込み
         states = np.load(file)
         next_state_num += states.shape[0]
+        # tupleに変形
+        states = tuple(map(tuple, states))
         
         # 他のファイルから重複する値を削除する
         for other_file in files[i+1:]:
             other_state = np.load(other_file)
-            # 重複している値を除いてファイルを上書き保存する
-            other_state_not_duplicate = np.array(set(other_state) - set(states), dtype=np.uint64)
+            """重複している値を除いてファイルを上書き保存する
+            2重リストまたは2次元numpy配列はsetを使えない。
+            また、並行で差分を取得する関数がないためtupleに変形してsetで差分を取得する
+            """
+            other_state = tuple(map(tuple, other_state))
+            other_state_not_duplicate = np.array(list(set(other_state) - set(states)), dtype=np.uint64)
             np.save(other_file, other_state_not_duplicate)
         
         # uniqueな値を登録する
         with h5py.File(state_file_path, "a") as f:
             dset = f["state"]
+            # numpyに戻す
+            states = np.array(states, dtype=np.uint64)
             # サイズを変更する
+            current_size = dset.shape[0]
             dset.resize(dset.shape[0] + states.shape[0], axis=0)
             # 追加
-            dset[dset.shpae[0]:] = states
+            dset[current_size:] = states
     
     return next_state_num
     
@@ -246,13 +261,13 @@ def _write_state_file_init() ->  int:
     state_file_path = TMP_REPORT_FOLDER + STATE_FILE_NAME3.replace("GENERATION", str(generation))
     with h5py.File(state_file_path, "w") as f:
         # データセットを作成する
-        dset = f.create_dataset("state", (0, 3), maxshape=(None, 3), chunks=(100000, 3), dtype=np.uint64)
+        dset = f.create_dataset("state", (1, 3), chunks=(1, 3), dtype=np.uint64)
         
         ini_black_board = 0x0000000810000000
         ini_white_board = 0x0000001008000000
         ini_player_id = PLAYER_BLACK
     
-        ini_states = np.array([[ini_black_board, ini_white_board, ini_player_id]],dtype=np.uint64), 0
+        ini_states = np.array([[ini_black_board, ini_white_board, ini_player_id]],dtype=np.uint64)
         dset[...] = ini_states
     
     return 1
