@@ -1,8 +1,15 @@
 # 容量が多いので追加
 env_v2/anality/report/
 
+# Sqlite(作成する際に拡張子は.sqlite3に統一: sqliteは拡張子はなんでもいいらしい)
+*.sqlite3
+
 # vscode
 .vscode
+
+# 仮想環境
+othelloenv/
+.envrc
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

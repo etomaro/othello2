@@ -1,0 +1,44 @@
+1. venvで仮想環境を作成する
+    othello2/に移動する
+    仮想環境作成
+    $ sudo add-apt-repository universe
+    $ sudo apt update
+
+    # python3.10の場合
+    $ sudo apt install python3.10-venv
+
+    $ python -m venv othelloenv
+
+    有効化
+    $ source backenv/bin/activate
+
+2. プロジェクトごとにdirenvを使って環境変数を管理する
+
+    direnv のインストール
+
+    Linux/macOS:
+    sudo apt install direnv  # Debian/Ubuntu
+
+    echo 'eval "$(direnv hook bash)"' >> ~/.bashrc
+    source ~/.bashrc
+
+    プロジェクトのルートディレクトリに移動し、.envrc というファイルを作成します。このファイルに、PYTHONPATH や他の環境変数の設定を記述します。
+
+    cd /path/to/your/project
+    touch .envrc
+    .envrc ファイルに以下のような内容を書き込みます。
+
+    export PYTHONPATH="/path/to/your/project"
+    export OTHER_ENV_VAR="other_value"
+    direnv allow コマンドで .envrc を有効化
+
+    .envrc ファイルを作成したら、プロジェクトディレクトリで以下のコマンドを実行して許可します。
+
+    direnv allow
+    これにより、プロジェクトディレクトリに移動するたびに自動的に PYTHONPATH が設定されます。
+
+    確認
+
+    プロジェクトディレクトリに移動したときに PYTHONPATH が正しく設定されているか、次のコマンドで確認します。
+
+    echo $PYTHONPATH
