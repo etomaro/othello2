@@ -13,13 +13,14 @@ def initial_db(db_path: str, is_delete=False) -> sqlite3.Connection:
     returns:
       カーソルオブジェクト
     """
-    try:
-        # DBの削除
-        if is_delete and os.path.exists(db_path):
-            os.remove(db_path)
+    # DBの削除
+    if is_delete and os.path.exists(db_path):
+        os.remove(db_path)
+    
+    # データベースに接続（DBが存在しない場合は自動的に作成される）
+    conn = sqlite3.connect(db_path)
         
-        # データベースに接続（DBが存在しない場合は自動的に作成される）
-        conn = sqlite3.connect(db_path)
+    try:
         # カーソルオブジェクトを作成
         cursor = conn.cursor()
         
