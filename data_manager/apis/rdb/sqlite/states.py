@@ -1,7 +1,11 @@
 import hashlib
 import sqlite3
 
-from data_manager.apis.rdb.sqlite.settings import TEST_DB_PATH
+from data_manager.apis.rdb.sqlite.settings import (
+    QUERY_CREATE_STATES_TABLE, QUERY_STATES_CREATE_INDEX, QUERY_STATES_DELETE_INDEX,
+    QUERY_STATES_BATCH_INSERT, QUERY_TRANSACTION_START, QUERY_STATES_INSERT,
+    QUERY_STATES_GET
+)
 from data_manager.apis.rdb.sqlite.tools import initial_db
 
 
@@ -29,10 +33,11 @@ class States():
         """
         
         state_hash = self.generate_hash(black, white, player)
-        
-        query = 'INSERT INTO states (black, white, player, hash) VALUES (?, ?, ?, ?)'
+
         try:
-            self.__cursor.execute(query, (black, white, player, state_hash))
+            self.__cursor.execute(
+                QUERY_STATES_INSERT, (black, white, player, state_hash)
+            )
             self.__conn.commit()
         
         except sqlite3.IntegrityError:
@@ -54,8 +59,7 @@ class States():
             }
         """
         hash_state = self.generate_hash(black, white, player)
-        query = "SELECT * FROM states WHERE hash = ?"
-        res = self.__cursor.execute(query, (hash_state,)).fetchone()
+        res = self.__cursor.execute(QUERY_STATES_GET, (hash_state,)).fetchone()
         
         # 取得できなかった場合例外をスロー
         if res is None:
@@ -74,4 +78,12 @@ class States():
                 "player": res[3],
                 "hash": res[4]
             }
-            
+    
+    def bulk_insert(self):
+        """
+        バッチ登録
+        大量データを挿入する際にインデックスがそんざいすると挿入速度が低下する必要があるため
+        一時的にインデックスを削除し、挿入後にインデックスを再作成を行う
+        """
+        # try:
+        #     self.__cursor.execute

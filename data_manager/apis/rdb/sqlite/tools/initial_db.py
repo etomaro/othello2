@@ -4,6 +4,10 @@
 import sqlite3
 import os
 
+from data_manager.apis.rdb.sqlite.settings import (
+    QUERY_CREATE_STATES_TABLE, QUERY_CREATE_STATES_INDEX
+)
+
 
 def initial_db(db_path: str, is_delete=False) -> sqlite3.Connection:
     """Sqliteに接続する
@@ -33,15 +37,10 @@ def initial_db(db_path: str, is_delete=False) -> sqlite3.Connection:
         hash: black,white,playerのハッシュ値
               ※ 複合キーにすると遅いのでハッシュ値で1keyにすることで速度改善
         """
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS states (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                black INTEGER NOT NULL,
-                white INTEGER NOT NULL,
-                player INTEGER NOT NULL,
-                hash TEXT NOT NULL UNIQUE
-            )
-        ''')
+        cursor.execute(QUERY_CREATE_STATES_TABLE)
+        
+        # インデックスの作成
+        cursor.execute(QUERY_CREATE_STATES_INDEX)
 
         # 変更を保存
         conn.commit()
