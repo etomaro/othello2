@@ -55,7 +55,7 @@ class States():
         """
         hash_state = self.generate_hash(black, white, player)
         query = "SELECT * FROM states WHERE hash = ?"
-        res = self.__cursor.execute(query, (hash_state)).fetchone()
+        res = self.__cursor.execute(query, (hash_state,)).fetchone()
         
         # 取得できなかった場合例外をスロー
         if res is None:

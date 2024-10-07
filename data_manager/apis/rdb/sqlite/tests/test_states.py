@@ -80,4 +80,26 @@ class TestStates(unittest.TestCase):
         self.assertEqual(exp, res)
         
     def test_get(self):
-        pass
+        """
+        1. データが存在しない
+        2. データが存在する
+        """
+        black, white, player = 0x0, 0x1, 0x1
+        
+        # 1. データが存在しない
+        # 例外が起きること
+        with self.assertRaises(Exception):
+            self._states_db.get(black, white, player)
+        
+        # 2. データが存在する
+        self._states_db.put(black, white, player)
+        res = self._states_db.get(black, white, player)
+        
+        exp_state_hash = self._states_db.generate_hash(black, white, player)
+        exp = {
+            "black": black,
+            "white": white,
+            "player": player,
+            "hash": exp_state_hash
+        }
+        self.assertEqual(exp, res)
