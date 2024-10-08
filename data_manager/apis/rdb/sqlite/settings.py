@@ -2,6 +2,8 @@
 TEST_DB_PATH = "data_manager/apis/rdb/sqlite/db/test_states.sqlite3"  # テスト用
 DB_PATH = "data_manager/apis/rdb/sqlite/db/states.sqlite3"
 
+# 設定値
+BATCH_SIZE = 100000  # 10万 
 
 # ---query---
 # statesテーブル作成
@@ -27,6 +29,8 @@ QUERY_STATES_BATCH_INSERT = '''
 '''
 # states get
 QUERY_STATES_GET = "SELECT * FROM states WHERE hash = ?"
+# get all
+QUERY_STATES_GET_ALL = "SELECT * FROM states"
 
 # トランザクション開始
 QUERY_TRANSACTION_START = "BEGIN TRANSACTION:"

@@ -1,5 +1,6 @@
 import pytest 
-import unittest 
+import unittest
+import unittest.mock import patch, MagicMock
 import os
 
 from data_manager.apis.rdb.sqlite.tools.initial_db import initial_db
@@ -103,3 +104,75 @@ class TestStates(unittest.TestCase):
             "hash": exp_state_hash
         }
         self.assertEqual(exp, res)
+    
+    def test_get_all(self):
+        """
+        1. 0件
+        2. 5件
+        """
+        # 1. 0件
+        res = self._states_db.get_all()
+        self.assertEqual([], res)
+        
+        # 5件
+        exp = []
+        for i in range(5):
+            # put
+            self._states_db.put(i, i, i)
+            exp_hash_state = self._states_db.generate_hash(i, i, i)
+            exp.append(
+                {
+                    "black": i,
+                    "white": i,
+                    "player": i,
+                    "hash": exp_hash_state
+                }
+            )
+        # exec
+        res = self._states_db.get_all()
+        self.assertEqual(exp, res)
+
+    @patch("slite3.connect.commit")
+    def test_bulk_insert(self, mock_commit):
+        """
+        1. 5件データ投入
+        2. エラーが発生してロールバックされていること
+        """
+        # 1. 5件データ投入
+        exps = []
+        datas = []
+        for i in range(5):
+            exp_state_hash = self._states_db.generate_hash(i, i, i)
+            datas.append((i, i, i))
+            exps.append(
+                {
+                    "black": i,
+                    "white": i,
+                    "player": i,
+                    "hash": exp_state_hash   
+                }
+            )
+        # exec
+        self._states_db.bulk_insert(datas)
+        
+        # 検証
+        res = self._states_db.get_all()
+        self.assertSetEqual(exps, res)
+        
+        # 2. エラーが発生してロールバックされていること
+        mock_commit.side_effect = Exception("mock error")
+        
+        datas2 = []
+        for i in range(5, 10):
+            datas2.append((i, i, i))
+            
+        # exec
+        with self.assertRaises(Exception):
+            self._states_db.bulk_insert(datas2)
+            
+            # rollbackが呼ばれていること
+            self.assertTrue(mock_commit.called)
+        
+        # 検証(5件のままであること)
+        res = self._states_db.get_all()
+        self.assertSetEqual(exps, res)   

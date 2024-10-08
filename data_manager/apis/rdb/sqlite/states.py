@@ -4,7 +4,7 @@ import sqlite3
 from data_manager.apis.rdb.sqlite.settings import (
     QUERY_CREATE_STATES_TABLE, QUERY_STATES_CREATE_INDEX, QUERY_STATES_DELETE_INDEX,
     QUERY_STATES_BATCH_INSERT, QUERY_TRANSACTION_START, QUERY_STATES_INSERT,
-    QUERY_STATES_GET
+    QUERY_STATES_GET, BATCH_SIZE, QUERY_STATES_GET_ALL
 )
 from data_manager.apis.rdb.sqlite.tools import initial_db
 
@@ -79,11 +79,90 @@ class States():
                 "hash": res[4]
             }
     
-    def bulk_insert(self):
+    def get_all(self) -> list[dict]: 
+        """
+        returns:
+        [
+            {
+                "black": black,
+                "white": white,
+                "player": player,
+                "hash": hash,
+            }
+        ]
+        """
+        exp = []
+        for i in range(5):
+            exp_state_hash = self.generate_hash(i, i, i)
+            exp.append(
+                {
+                    "black": i,
+                    "white": i,
+                    "player": i,
+                    "hash": exp_state_hash
+                }
+            )
+            # put
+            self.put(i, i, i)
+        
+        # exec
+        res = self.__cursor.execute(QUERY_STATES_GET_ALL).fetchall()
+        
+        result = []
+        for data in res: 
+            result.append(
+                {
+                    "black": data[1],
+                    "white": data[2],
+                    "player": data[3],
+                    "hash": data[4]
+                }
+            )
+        
+        return result
+    
+    def bulk_insert(self, datas: list[tuple], chunk_size=BATCH_SIZE):
         """
         バッチ登録
-        大量データを挿入する際にインデックスがそんざいすると挿入速度が低下する必要があるため
+        大量データを挿入する際にインデックスが存在すると挿入速度が低下する必要があるため
         一時的にインデックスを削除し、挿入後にインデックスを再作成を行う
+        
+        args:
+          datas: [
+              (black, white, player),
+              ...
+          ]
         """
-        # try:
-        #     self.__cursor.execute
+        # hashを含めたデータにする
+        states = [data + (self.generate_hash(data[0], data[1], data[2]), ) for data in datas]
+        
+        try:
+            # インデックスの削除
+            self.__cursor.execute(QUERY_STATES_DELETE_INDEX)
+            
+            # トランザクション開始
+            self.__conn.execute(QUERY_TRANSACTION_START)
+            
+            for i in range(0, len(datas), chunk_size):
+                # バッチ挿入
+                self.__cursor.executemany(QUERY_STATES_BATCH_INSERT, states[i:i+chunk_size])
+            
+            # トランザクションコミット
+            self.__conn.commit()
+            
+        except sqlite3.Error as e:
+            # DB接続エラー
+            self.__conn.rollback()
+            raise
+        except sqlite3.IntegrityError as ie:
+            # IntegrityError
+            self.__conn.rollback()
+            raise
+        except Exception as ex:
+            self.__conn.rollback()
+            raise
+        finally:
+            # いかなる時もこの処理を通る
+            # インデックスの再作成
+            self.__cursor.execute(QUERY_STATES_CREATE_INDEX)
+            self.__conn.commit()
