@@ -1,6 +1,6 @@
 import pytest 
 import unittest
-import unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock
 import os
 
 from data_manager.apis.rdb.sqlite.tools.initial_db import initial_db
@@ -175,4 +175,7 @@ class TestStates(unittest.TestCase):
         
         # 検証(5件のままであること)
         res = self._states_db.get_all()
-        self.assertSetEqual(exps, res)   
+        self.assertSetEqual(exps, res)
+    
+    def speed_test_bulk_insert(self):
+        pass
