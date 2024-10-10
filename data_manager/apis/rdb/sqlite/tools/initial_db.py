@@ -5,7 +5,7 @@ import sqlite3
 import os
 
 from data_manager.apis.rdb.sqlite.settings import (
-    QUERY_CREATE_STATES_TABLE, QUERY_CREATE_STATES_INDEX
+    QUERY_CREATE_STATES_TABLE, QUERY_STATES_CREATE_INDEX
 )
 
 
@@ -40,7 +40,7 @@ def initial_db(db_path: str, is_delete=False) -> sqlite3.Connection:
         cursor.execute(QUERY_CREATE_STATES_TABLE)
         
         # インデックスの作成
-        cursor.execute(QUERY_CREATE_STATES_INDEX)
+        cursor.execute(QUERY_STATES_CREATE_INDEX)
 
         # 変更を保存
         conn.commit()
