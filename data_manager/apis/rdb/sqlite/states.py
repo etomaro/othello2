@@ -91,25 +91,13 @@ class States():
             }
         ]
         """
-        exp = []
-        for i in range(5):
-            exp_state_hash = self.generate_hash(i, i, i)
-            exp.append(
-                {
-                    "black": i,
-                    "white": i,
-                    "player": i,
-                    "hash": exp_state_hash
-                }
-            )
-            # put
-            self.put(i, i, i)
-        
         # exec
         res = self.__cursor.execute(QUERY_STATES_GET_ALL).fetchall()
         
         result = []
         for data in res: 
+            # hashを取得しないQueryにする
+            # 戻り値をnumpyなどを検討する
             result.append(
                 {
                     "black": data[1],
