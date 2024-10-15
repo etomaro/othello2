@@ -204,8 +204,8 @@ def add_test_data():
     settings = [
         (
             100000000,
-            "data_manager/apis/rdb/sqlite/db/test_states_100million_detail.sqlite3",
-            "100million_detail"
+            "data_manager/apis/rdb/sqlite/db/test_states_100million_by_100000.sqlite3",
+            "100million_by_100000"
         )
     ]
     for state_num, db_path, prefix_report_file in settings:
