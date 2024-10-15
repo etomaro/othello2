@@ -6,10 +6,13 @@ import csv
 import time
 import os
 
-from common.create_test_state_data import create_data
 from data_manager.apis.rdb.sqlite.states import States
 from data_manager.apis.rdb.sqlite.tools.initial_db import initial_db
-from data_manager.apis.rdb.sqlite.settings import TEST_DB_PATH
+from data_manager.apis.rdb.sqlite.settings import (
+    TEST_DB_PATH, TEST_DB_PATH_10000, TEST_DB_PATH_100000,
+    TEST_DB_PATH_1million, TEST_DB_PATH_10million, TEST_DB_PATH_100million,
+    TEST_DB_PATH_1billion, TEST_DB_PATH_10billion
+)
 
 
 BASE_FOLDER = os.path.dirname(__file__)
@@ -51,6 +54,7 @@ def run():
         api = States(conn)
         
         # 登録データ作成
+        # TODO:
         data = create_data(state_num)
         
         # 登録
@@ -105,16 +109,16 @@ def run_many(state_num: int, batch_num: int, file_path: str):
       
       # CSV出力
       writer.writerow([state_num, batch_num, formatted_time_write, formatted_time_read])
-              
 
 if __name__ == "__main__":
+    
     # 1万-1000万
     # run()
     
     # 1億
-    state_num = 100000000 
-    file_path = BASE_FOLDER + "/" + "reports/speed_state_test_100million.csv"
-    run_many(state_num, state_num, file_path)
+    # state_num = 100000000 
+    # file_path = BASE_FOLDER + "/" + "reports/speed_state_test_100million.csv"
+    # run_many(state_num, state_num, file_path)
     
     # 10億
     # state_num = 1000000000

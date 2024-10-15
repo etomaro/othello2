@@ -1,5 +1,6 @@
 import hashlib
 import sqlite3
+import time
 
 from data_manager.apis.rdb.sqlite.settings import (
     QUERY_CREATE_STATES_TABLE, QUERY_STATES_CREATE_INDEX, QUERY_STATES_DELETE_INDEX,
@@ -79,37 +80,17 @@ class States():
                 "hash": res[4]
             }
     
-    def get_all(self) -> list[dict]: 
+    def get_all(self) -> list[tuple]: 
         """
         returns:
-        [
-            {
-                "black": black,
-                "white": white,
-                "player": player,
-                "hash": hash,
-            }
-        ]
+          [(black, white, player), ..]
         """
         # exec
         res = self.__cursor.execute(QUERY_STATES_GET_ALL).fetchall()
         
-        result = []
-        for data in res: 
-            # hashを取得しないQueryにする
-            # 戻り値をnumpyなどを検討する
-            result.append(
-                {
-                    "black": data[1],
-                    "white": data[2],
-                    "player": data[3],
-                    "hash": data[4]
-                }
-            )
-        
-        return result
+        return res
     
-    def bulk_insert(self, datas: list[tuple], chunk_size=BATCH_SIZE):
+    def bulk_insert(self, datas: list[tuple], chunk_size=BATCH_SIZE, debug=False):
         """
         バッチ登録
         大量データを挿入する際にインデックスが存在すると挿入速度が低下する必要があるため
@@ -120,23 +101,43 @@ class States():
               (black, white, player),
               ...
           ]
+        
+        returns:
+          time_index_delete: インデックス削除の時間
+          time_index_create: インデックス作成の時間
+          time_transaction_start: トランザクション開始する時間
+          time_insert: インザートする時間
+          time_commit_insert: インザーとをコミットする時間
+          time_commit_index_create: インデックスをコミットする時間
         """
         # hashを含めたデータにする
         states = [data + (self.generate_hash(data[0], data[1], data[2]), ) for data in datas]
         
         try:
+            time_start = time.time()
             # インデックスの削除
             self.__cursor.execute(QUERY_STATES_DELETE_INDEX)
             
-            # トランザクション開始
-            self.__conn.execute(QUERY_TRANSACTION_START)
+            time_index_delete = time.time()-time_start
             
+            time_transaction_start = 0
+            time_insert = 0
+            time_commit_insert = 0
             for i in range(0, len(datas), chunk_size):
+                # トランザクション開始
+                time_start = time.time()
+                self.__conn.execute(QUERY_TRANSACTION_START)
+                time_transaction_start += time.time() - time_start
                 # バッチ挿入
+                time_start = time.time()
                 self.__cursor.executemany(QUERY_STATES_BATCH_INSERT, states[i:i+chunk_size])
+                time_insert += time.time() - time_start
             
-            # トランザクションコミット
-            self.__conn.commit()
+                # トランザクションコミット
+                # コミットするまでメモリ上にデータを蓄積するのでバッチごとにコミットする
+                time_start = time.time()
+                self.__conn.commit()
+                time_commit_insert += time.time() - time_start
             
         except sqlite3.Error as e:
             # DB接続エラー
@@ -152,5 +153,20 @@ class States():
         finally:
             # いかなる時もこの処理を通る
             # インデックスの再作成
+            time_start = time.time()
             self.__cursor.execute(QUERY_STATES_CREATE_INDEX)
+            time_index_create = time.time() - time_start
+            
+            time_start = time.time()
             self.__conn.commit()
+            time_commit_index_create = time.time() - time_start
+            
+            if debug:
+                return (
+                    time_index_delete,
+                    time_index_create,
+                    time_transaction_start,
+                    time_insert,
+                    time_commit_insert,
+                    time_commit_index_create
+                )

@@ -120,15 +120,7 @@ class TestStates(unittest.TestCase):
         for i in range(5):
             # put
             self._states_db.put(i, i, i)
-            exp_hash_state = self._states_db.generate_hash(i, i, i)
-            exp.append(
-                {
-                    "black": i,
-                    "white": i,
-                    "player": i,
-                    "hash": exp_hash_state
-                }
-            )
+            exp.append((i, i, i))
         # exec
         res = self._states_db.get_all()
         self.assertEqual(exp, res)
@@ -142,16 +134,8 @@ class TestStates(unittest.TestCase):
         exps = []
         datas = []
         for i in range(5):
-            exp_state_hash = self._states_db.generate_hash(i, i, i)
             datas.append((i, i, i))
-            exps.append(
-                {
-                    "black": i,
-                    "white": i,
-                    "player": i,
-                    "hash": exp_state_hash   
-                }
-            )
+            exps.append((i, i, i))
         # exec
         self._states_db.bulk_insert(datas)
         

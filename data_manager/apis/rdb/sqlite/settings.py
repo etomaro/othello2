@@ -2,8 +2,24 @@
 TEST_DB_PATH = "data_manager/apis/rdb/sqlite/db/test_states.sqlite3"  # テスト用
 DB_PATH = "data_manager/apis/rdb/sqlite/db/states.sqlite3"
 
+# ※ 初期登録のみで書き換えしないことを注意する
+# 1万件のデータ登録されたDB
+TEST_DB_PATH_10000 = "data_manager/apis/rdb/sqlite/db/test_states_10000.sqlite3"
+# 10万件のデータ登録されたDB
+TEST_DB_PATH_100000 = "data_manager/apis/rdb/sqlite/db/test_states_100000.sqlite3"
+# 100万件のデータ登録されたDB
+TEST_DB_PATH_1million = "data_manager/apis/rdb/sqlite/db/test_states_1million.sqlite3"
+# 1000万件のデータ登録されたDB
+TEST_DB_PATH_10million = "data_manager/apis/rdb/sqlite/db/test_states_10million.sqlite3"
+# 1億件のデータ登録されたDB
+TEST_DB_PATH_100million = "data_manager/apis/rdb/sqlite/db/test_states_100million.sqlite3"
+# 10億件のデータ登録されたDB
+TEST_DB_PATH_1billion = "data_manager/apis/rdb/sqlite/db/test_states_1billion.sqlite3"
+# 100億件のデータ登録されたDB
+TEST_DB_PATH_10billion = "data_manager/apis/rdb/sqlite/db/test_states_10billion.sqlite3"
+
 # 設定値
-BATCH_SIZE = 100000  # 10万 
+BATCH_SIZE = 10000000  # 1000万 
 
 # ---query---
 # statesテーブル作成
@@ -30,7 +46,7 @@ QUERY_STATES_BATCH_INSERT = '''
 # states get
 QUERY_STATES_GET = "SELECT * FROM states WHERE hash = ?"
 # get all
-QUERY_STATES_GET_ALL = "SELECT * FROM states"
+QUERY_STATES_GET_ALL = "SELECT black, white, player FROM states"
 
 # トランザクション開始
 QUERY_TRANSACTION_START = "BEGIN TRANSACTION"
