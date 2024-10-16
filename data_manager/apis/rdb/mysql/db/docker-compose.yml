@@ -1,0 +1,66 @@
+# versionは3系が最新版で、versionによって書き方が異なる
+version: "3"
+services:
+  # 開発用
+  mysql_dev:
+    container_name: mysql_dev_container
+    build: ./mysql_dev #Dockerfileからビルドすることを示す
+    volumes:
+      - ./mysql_dev/data:/var/lib/mysql  # データを永続するためのmap
+    image: mysql_dev_image # イメージの名前
+    environment:
+      - MYSQL_ROOT_PASSWORD=pass   #コンテナ内のMySQLを起動する際のパスワードを設定
+  # テスト用
+  mysql_test:
+    container_name: mysql_test_container
+    build: ./mysql_test
+    volumes:
+      - ./mysql_test/data:/var/lib/mysql
+    image: mysql_test_image
+    environment:
+      - MYSQL_ROOT_PASSWORD=pass
+  # 1万データ用意したMYSQL
+  mysql_10000:
+    container_name: mysql_10000_container
+    build: ./mysql_10000
+    volumes:
+      - ./mysql_10000/data:/var/lib/mysql
+    image: mysql_10000_image
+    environment:
+      - MYSQL_ROOT_PASSWORD=pass
+  # 10万データ用意したMYSQL
+  mysql_100000:
+    container_name: mysql_100000_container
+    build: ./mysql_100000
+    volumes:
+      - ./mysql_100000/data:/var/lib/mysql
+    image: mysql_100000_image
+    environment:
+      - MYSQL_ROOT_PASSWORD=pass
+  # 100万データ用意したMYSQL
+  mysql_1million:
+    container_name: mysql_1million_container
+    build: ./mysql_1million
+    volumes:
+      - ./mysql_1million/data:/var/lib/mysql
+    image: mysql_1million_image
+    environment:
+      - MYSQL_ROOT_PASSWORD=pass
+  # 1000万データ用意したMYSQL
+  mysql_10million:
+    container_name: mysql_10million_container
+    build: ./mysql_10million
+    volumes:
+      - ./mysql_10million/data:/var/lib/mysql
+    image: mysql_10million_image
+    environment:
+      - MYSQL_ROOT_PASSWORD=pass
+  # 1億データ用意したMYSQL
+  mysql_100million:
+    container_name: mysql_100million_container
+    build: ./mysql_100million
+    volumes:
+      - ./mysql_100million/data:/var/lib/mysql
+    image: mysql_100million_image
+    environment:
+      - MYSQL_ROOT_PASSWORD=pass

@@ -4,6 +4,9 @@ env_v2/anality/report/
 # Sqlite(作成する際に拡張子は.sqlite3に統一: sqliteは拡張子はなんでもいいらしい)
 *.sqlite3
 
+# mysql
+data_manager/apis/rdb/mysql/db/*/data/*
+
 # vscode
 .vscode
 

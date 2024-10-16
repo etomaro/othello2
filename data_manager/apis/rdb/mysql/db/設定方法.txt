@@ -1,0 +1,59 @@
+--------------------DBに接続--------------------
+
+・DBが起動しているか確認する
+  docker ps
+
+・DBを起動する
+  docker-compose up -d 
+
+・起動したコンテナにログイン
+  docker exec -it <CONTAINER_NAME> bash -p 
+
+・mysqlに接続
+  mysql -u root -p -h localhost
+
+・databaseの一覧を表示
+  show databases;
+
+・DBを作成
+  create database states;
+
+・DBを使用
+  use states;
+
+--------------------DEBUG--------------------
+・コンテナの停止
+  docker-compose down 
+  これをすると作成したDBなどのデータは削除される(volumeを設定している場合は消えない)
+
+・コンテナの一時停止
+  docker-compose stop
+  データは消えない
+
+・データの永続化
+  下記フォルダにデータが登録される
+  data/
+
+
+--------------------DB新規追加方法--------------------
+1. data_manager/apis/rdb/mysql/db配下にDATABASE名のフォルダを追加
+
+2. 新規追加したフォルダ配下に下記ファイル・フォルダを作成
+  2.1 /data
+  2.2 Dockerfile
+    -> 既存のファイル内容と同一
+    -> portのみインクリメント
+  2.3 my.cnf
+    -> 既存のファイル内容と同一でいい
+
+3. docker-composeに追加する
+  3.1 service名を変更する
+  3.2 container_nameを変更する
+  3.3 build pathを変更する
+  3.4 volumes pathを変更する
+  3.5 image名を変更する
+
+4. python用の設定ファイルにDB接続設定値を追加する
+  data_manager/apis/rdb/mysql/settings.py 
+
+  4.1 HOST, USER, PASSWORD, PORT

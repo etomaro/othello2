@@ -177,6 +177,9 @@ def add_data(db_path: str, state_num: int, prefix_report_file: str) -> None:
         print(f"データ作成失敗\n{ex}")
         # 失敗した場合DB削除
         os.remove(file_path)
+    
+    finally:
+        conn.close()
         
         
 def add_test_data():
@@ -192,22 +195,15 @@ def add_test_data():
     5:30ごろから登録
     """
     settings = [
-    #   (10000, TEST_DB_PATH_10000, "10000"),
-    #   (100000, TEST_DB_PATH_100000, "100000"),
-    #   (1000000, TEST_DB_PATH_1million, "1million"),
-    #   (10000000, TEST_DB_PATH_10million, "10million"),
-      (100000000, TEST_DB_PATH_100million, "100million"),
+      (10000, TEST_DB_PATH_10000, "10000"),
+      (100000, TEST_DB_PATH_100000, "100000"),
+      (1000000, TEST_DB_PATH_1million, "1million"),
+      (10000000, TEST_DB_PATH_10million, "10million"),
+    #   (100000000, TEST_DB_PATH_100million, "100million"),
     #   (1000000000, TEST_DB_PATH_1billion, "1billion"),
     #   (10000000000, TEST_DB_PATH_10billion, "10billion"),
     ]
-    
-    settings = [
-        (
-            100000000,
-            "data_manager/apis/rdb/sqlite/db/test_states_100million_by_100000.sqlite3",
-            "100million_by_100000"
-        )
-    ]
+
     for state_num, db_path, prefix_report_file in settings:
         print(f"---start add data---")
         add_data(db_path, state_num, prefix_report_file)
