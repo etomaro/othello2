@@ -29,6 +29,7 @@ def initial_db(db_path: str, is_delete=False) -> sqlite3.Connection:
         cursor = conn.cursor()
         
         # TODO: 型は考慮する必要がある
+        # TODO: initial_db時毎回テーブルなどを作成しているため修正必要
         """テーブルの作成
         id: id
         black: 黒のボード
