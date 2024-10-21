@@ -1,6 +1,8 @@
 import mysql.connector
 from mysql.connector import errorcode
-
+from data_manager.apis.rdb.mysql.query import (
+    QUERY_DELETE_ALL_DATA_STATES
+)
 
 
 def initial_db(db_settings: dict, is_delete: bool = False) -> mysql.connector.connection:
@@ -33,9 +35,9 @@ def _flash_data(conn: mysql.connector.connection) -> None:
     """
     データを削除(テーブルは削除しない)
     """
-    pass
-    
-    
+    cursor = conn.cursor()
+    cursor.execute(QUERY_DELETE_ALL_DATA_STATES)
+    cursor.close()
     
 def connect_to_mysql(
         host: str, user: str, password: str, port: str, db_name: str
