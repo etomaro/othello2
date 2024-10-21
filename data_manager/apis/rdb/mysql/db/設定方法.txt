@@ -26,6 +26,9 @@
   docker-compose down 
   これをすると作成したDBなどのデータは削除される(volumeを設定している場合は消えない)
 
+  ボリュームも同時に削除する
+  docker compose down -v
+
 ・コンテナの一時停止
   docker-compose stop
   データは消えない
@@ -34,6 +37,8 @@
   下記フォルダにデータが登録される
   data/
 
+・コンテナのログを出力する(エラー時など)
+  docker logs <CONTAINER_NAME>
 
 --------------------DB新規追加方法--------------------
 1. data_manager/apis/rdb/mysql/db配下にDATABASE名のフォルダを追加
@@ -52,6 +57,8 @@
   3.3 build pathを変更する
   3.4 volumes pathを変更する
   3.5 image名を変更する
+  3.6 environmentを変更する
+      MYSQL_DATABASE: コンテナを起動する際にDBも作成
 
 4. python用の設定ファイルにDB接続設定値を追加する
   data_manager/apis/rdb/mysql/settings.py 

@@ -8,8 +8,12 @@ services:
     volumes:
       - ./mysql_dev/data:/var/lib/mysql  # データを永続するためのmap
     image: mysql_dev_image # イメージの名前
+    ports: 
+      - 3307:3306
     environment:
       - MYSQL_ROOT_PASSWORD=pass   #コンテナ内のMySQLを起動する際のパスワードを設定
+      - MYSQL_DATABASE=mysql_dev  # 指定することでコンテナ起動の際に指定したDBを作成
+      - TZ=Asia/Tokyo
   # テスト用
   mysql_test:
     container_name: mysql_test_container
@@ -17,8 +21,12 @@ services:
     volumes:
       - ./mysql_test/data:/var/lib/mysql
     image: mysql_test_image
+    ports: 
+      - 3308:3306
     environment:
       - MYSQL_ROOT_PASSWORD=pass
+      - MYSQL_DATABASE=mysql_test
+      - TZ=Asia/Tokyo
   # 1万データ用意したMYSQL
   mysql_10000:
     container_name: mysql_10000_container
@@ -26,8 +34,12 @@ services:
     volumes:
       - ./mysql_10000/data:/var/lib/mysql
     image: mysql_10000_image
+    ports: 
+      - 3309:3306
     environment:
       - MYSQL_ROOT_PASSWORD=pass
+      - MYSQL_DATABASE=mysql_10000
+      - TZ=Asia/Tokyo
   # 10万データ用意したMYSQL
   mysql_100000:
     container_name: mysql_100000_container
@@ -35,8 +47,12 @@ services:
     volumes:
       - ./mysql_100000/data:/var/lib/mysql
     image: mysql_100000_image
+    ports: 
+      - 3310:3306
     environment:
       - MYSQL_ROOT_PASSWORD=pass
+      - MYSQL_DATABASE=mysql_100000
+      - TZ=Asia/Tokyo
   # 100万データ用意したMYSQL
   mysql_1million:
     container_name: mysql_1million_container
@@ -44,8 +60,12 @@ services:
     volumes:
       - ./mysql_1million/data:/var/lib/mysql
     image: mysql_1million_image
+    ports: 
+      - 3311:3306
     environment:
       - MYSQL_ROOT_PASSWORD=pass
+      - MYSQL_DATABASE=mysql_1million
+      - TZ=Asia/Tokyo
   # 1000万データ用意したMYSQL
   mysql_10million:
     container_name: mysql_10million_container
@@ -53,8 +73,12 @@ services:
     volumes:
       - ./mysql_10million/data:/var/lib/mysql
     image: mysql_10million_image
+    ports: 
+      - 3312:3306
     environment:
       - MYSQL_ROOT_PASSWORD=pass
+      - MYSQL_DATABASE=mysql_10million
+      - TZ=Asia/Tokyo
   # 1億データ用意したMYSQL
   mysql_100million:
     container_name: mysql_100million_container
@@ -62,5 +86,9 @@ services:
     volumes:
       - ./mysql_100million/data:/var/lib/mysql
     image: mysql_100million_image
+    ports: 
+      - 3313:3306
     environment:
       - MYSQL_ROOT_PASSWORD=pass
+      - MYSQL_DATABASE=mysql_100million
+      - TZ=Asia/Tokyo
