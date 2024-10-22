@@ -1,12 +1,14 @@
 import mysql.connector
 from mysql.connector import errorcode
 from data_manager.apis.rdb.mysql.query import (
-    QUERY_DELETE_ALL_DATA_STATES
+    QUERY_DELETE_ALL_DATA_STATES, QUERY_CREATE_STATES_TABLE
 )
 
 
-def initial_db(db_settings: dict, is_delete: bool = False) -> mysql.connector.connection:
+def initial_db(db_settings: dict, is_delete: bool = False) -> None:
     """
+    データ削除、テーブル作成、インデックス作成
+    
     args:
         db_settings:
         {
@@ -24,26 +26,36 @@ def initial_db(db_settings: dict, is_delete: bool = False) -> mysql.connector.co
         db_settings.get("port"), db_settings.get("db_name")
     )
     
-    # データ削除
-    if is_delete:
-        _flash_data(conn)
-    
-    return conn
+    cursor = conn.cursor()
+    try:
+        # テーブルが存在しない場合作成
+        cursor.execute(QUERY_CREATE_STATES_TABLE)
+        
+        # インデックスが存在しない場合作成
+        # uniqueのレコードは自動でインデックスを作成してくれる
+        
+        # データ削除
+        if is_delete:
+            _flash_data(cursor)
+        
+        conn.commit()
+    except Exception:
+        raise
+    finally:
+        cursor.close()
+        conn.close()
     
 
-def _flash_data(conn: mysql.connector.connection) -> None:
+def _flash_data(cursor) -> None:
     """
     データを削除(テーブルは削除しない)
     """
-    cursor = conn.cursor()
     cursor.execute(QUERY_DELETE_ALL_DATA_STATES)
-    cursor.close()
     
 def connect_to_mysql(
         host: str, user: str, password: str, port: str, db_name: str
     ) -> mysql.connector.connection:
     """接続用
-      
     """
     try:
         conn = mysql.connector.connect(
@@ -70,16 +82,3 @@ def connect_to_mysql(
         print("Exception発生")
         print(ex)
         raise
-        
-
-
-def create_database(cursor, db_name):
-    try:
-        cursor.execute(f"CREATE DATABASE {db_name} DEFAULT CHARACTER SET 'utf8'")
-        print(f"データベース '{db_name}' を作成しました。")
-    except mysql.connector.Error as err:
-        print(f"データベース作成中にエラーが発生しました: {err}")
-        exit(1)
-
-
-
