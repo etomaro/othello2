@@ -1,5 +1,6 @@
 import mysql.connector
 from mysql.connector import errorcode
+import mysql.connector.cursor
 from data_manager.apis.rdb.mysql.query import (
     QUERY_DELETE_ALL_DATA_STATES, QUERY_CREATE_STATES_TABLE
 )
@@ -21,12 +22,11 @@ def initial_db(db_settings: dict, is_delete: bool = False) -> None:
         is_delete:     
     """
     # データベース接続
-    conn = connect_to_mysql(
+    conn, cursor = connect_to_mysql(
         db_settings.get("host"), db_settings.get("user"), db_settings.get("password"),
         db_settings.get("port"), db_settings.get("db_name")
     )
     
-    cursor = conn.cursor()
     try:
         # テーブルが存在しない場合作成
         cursor.execute(QUERY_CREATE_STATES_TABLE)
@@ -45,7 +45,6 @@ def initial_db(db_settings: dict, is_delete: bool = False) -> None:
         cursor.close()
         conn.close()
     
-
 def _flash_data(cursor) -> None:
     """
     データを削除(テーブルは削除しない)
@@ -54,7 +53,7 @@ def _flash_data(cursor) -> None:
     
 def connect_to_mysql(
         host: str, user: str, password: str, port: str, db_name: str
-    ) -> mysql.connector.connection:
+    ) -> tuple[mysql.connector.connection, mysql.connector.cursor]:
     """接続用
     """
     try:
@@ -65,8 +64,8 @@ def connect_to_mysql(
             port=port,
             database=db_name,
         )
-        print("MySQLに接続しました。")
-        return conn
+        cursor = conn.cursor()
+        return conn, cursor
     except mysql.connector.Error as err:
         if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
             print("ユーザー名またはパスワードが間違っています。")

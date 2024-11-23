@@ -22,14 +22,14 @@ class TestBaseMysql(unittest.TestCase):
         self._port = PORT_TEST 
         self._password = PASS_TEST
         
-        self.settings = {
+        self._settings = {
             "host": self._host,
             "user": self._user,
             "password": self._password,
             "port": self._port,
             "db_name": self._db_name
         }
-        initial_db(self.settings, is_delete=True)
+        initial_db(self._settings, is_delete=True)
     
     def tearDown(self):
         pass
