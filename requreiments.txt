@@ -59,7 +59,6 @@ memray==1.13.4
 more-itertools==9.1.0
 msgpack==1.0.8
 multidict==6.0.5
-mysqlclient==2.1.0
 numba==0.60.0
 numpy==1.26.4
 opencensus==0.11.4
@@ -75,7 +74,6 @@ prometheus_client==0.20.0
 proto-plus==1.24.0
 protobuf==5.27.2
 psutil==6.0.0
-psycopg2==2.9.9
 py==1.11.0
 py-spy==0.3.14
 pyasn1==0.6.0
@@ -121,4 +119,3 @@ whitenoise==6.5.0
 wrapt==1.16.0
 wsproto==1.2.0
 yarl==1.9.4
-zipp==3.15.0

@@ -42,3 +42,15 @@
     プロジェクトディレクトリに移動したときに PYTHONPATH が正しく設定されているか、次のコマンドで確認します。
 
     echo $PYTHONPATH
+
+3. vscodeの実行環境をvenvに設定する
+    .vscode/settings.jsonのpython.venvFoldersにvenvのパスを設定する
+    ex: 
+        "python.venvFolders": [
+            "othelloenv",
+        ]
+    
+    インタープリターを選択する
+    Ctrl+Shift+Pでパレットを開き「Select Interpreter」を選択肢venvを選択する
+
+    -> Vscodeを開くとターミナルに指定したvenvの仮想環境が設定されている
