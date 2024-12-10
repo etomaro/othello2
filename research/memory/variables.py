@@ -6,6 +6,7 @@ import csv
 import matplotlib.pyplot as plt
 import japanize_matplotlib
 
+
 def get_element_one():
     """
     変数のめもり使用量をprint出力する
@@ -16,8 +17,6 @@ def get_element_one():
     black_state_array_full = [0xffffffffffffffff]
     black_state_numpy_zero = np.array([0x0])
     black_state_numpy_full = np.array([0xffffffffffffffff])
-
-
     """
     [black_state_zero]__sizeof__(): 24 byte -> 実情報量の3倍
     [black_state_full]__sizeof__(): 36 byte -> 実情報量の4.5倍
@@ -166,9 +165,7 @@ def get_array_memoy_relation(step: int,  ele_num_max: int):
     plt.savefig(file_path_diff, dpi=400)
     plt.close()
 
-
-
 if __name__ == "__main__":
-    step = 1  # 100万
-    ele_num_max = 100  # 1億
+    step = 10000000  # 1000万
+    ele_num_max = 1000000000  # 10億
     get_array_memoy_relation(step, ele_num_max)
