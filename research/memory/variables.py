@@ -72,7 +72,7 @@ def get_array_memoy_relation(step: int,  ele_num_max: int):
     real_size = 0
     array = []
     
-    headers = ["要素数", "実際の情報量", "実際の情報量とarrayの差分", "実際の情報量とndrrayの差分", "配列のメモリ使用量", "ndarrayのメモリ使用量"]
+    headers = ["要素数", "実情報量", "実情報量とリストの差分", "実情報量とndarrayの差分", "リストのメモリ使用量", "ndarrayのメモリ使用量"]
     rows = []
     
     for idx, ele_num in enumerate(range(step, ele_num_max+1, step)):
