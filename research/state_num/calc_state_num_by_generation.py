@@ -94,14 +94,17 @@ def calc(generation: int) -> int:
     stone_pattern_not_same_num = []
     stone_pattern_same_num = []
     for black_stone_num in range(stone_num+1):
+        if black_stone_num > (stone_num/2):
+            break
+    
         white_stone_num = stone_num - black_stone_num
         if black_stone_num != white_stone_num:
             stone_pattern_not_same_num.append((black_stone_num, white_stone_num))
         else:
             stone_pattern_same_num.append((black_stone_num, white_stone_num))
         
-        if black_stone_num >= (stone_num/2):
-            break
+    print(f"stone_pattern_not_same_num: {stone_pattern_not_same_num}")
+    print(f"stone_pattern_same_num: {stone_pattern_same_num}")
 
     # 黒石と白石の同数ではないパターンのループ
     for stones_num in stone_pattern_not_same_num:
