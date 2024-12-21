@@ -29,9 +29,14 @@ class TestSymmetory(unittest.TestCase):
         reverse,horizontal_flip,transpose,rotate90,rotate180,rotate270の
         テストデータと期待値を作成する
 
-        1. board=0xffffffffffffffff
-        2. board=0x0
-        3. 
+        1. 0xffffffffffffffff
+        2. 0x0
+        3. 0xf000000000000000
+        4. 0xaa00000000000000
+        5. 0xfffefcf8f0e0c080
+        6. 0x3563c9f006eda7c7
+        7. 0xb1d36a8f6ab6c12f
+        8. 0x143f7e904f0e66e6
 
         returns:
           [
