@@ -3,6 +3,11 @@
 
 """
 from itertools import combinations
+import csv
+import time
+import os
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from env_v2.common.symmetory import normalization
 
@@ -82,7 +87,6 @@ def _calc_state_num_by_white_black_num(black_stone_num: int, white_stone_num: in
     returns:
       estimated_num_by_white_black_num: 石と白石の数が確定している状態での推定最大状態数
     """
-    estimated_num_by_white_black_num = 0
 
     """黒、白それぞれビットボードで可能なパターンを列挙
     64Cstone_num
@@ -90,7 +94,7 @@ def _calc_state_num_by_white_black_num(black_stone_num: int, white_stone_num: in
             64C4=635376
 
         64Crで(r=0-64)取りうる最大値は10の18乗(100京)
-        ※ n_C_r.csvを参照
+        ※ research/estimated_state_num/n_C_r/report.csvを参照
     """
     # 64ビットのうち、n個のビットを1にするすべてのパターンを生成
     # ビット番号は0～63で下位ビットが0番とする
@@ -208,12 +212,52 @@ def _judge_alone_stone(board: int) -> bool:
     # すべての石があるマスを調べて1つも孤立石がない場合False
     return False
 
+def sec_to_str(calc_time: int) -> str:
+    """
+    秒を{hour}h{minute}m{seconds}sの形式に変換する
+    """
+    minute_slot = 60
+    hour_slot = 60*60
 
+    calc_time_str = ""
+    if (calc_time // hour_slot) >= 1:
+        # 1時間以上の場合
+        hour = calc_time // hour_slot
+        calc_time -= hour * hour_slot
+        calc_time_str += f"{hour}h"
+    if (calc_time // minute_slot) >= 1:
+        # 1分以上の場合
+        minute = calc_time // minute_slot 
+        calc_time -= minute * minute_slot 
+        calc_time_str += f"{minute}m"
+    # 秒の追加
+    calc_time_str += f"{calc_time}s"
+
+    return calc_time_str
 
 
 if __name__ == "__main__":
-    print(calc(0))
+    generation = 0
 
+    start_time = time.time()
+    estimated_num = calc(generation)
+    print(f"世代: {generation}, 推定状態数: {estimated_num}")
 
+    # CSV出力
 
+    now_dt = datetime.now(tz=ZoneInfo("Asia/Tokyo"))
+    now_str = f"{now_dt.year}/{now_dt.month}/{now_dt.day} {now_dt.hour}:{now_dt.minute}"
+
+    calc_time_sec = time.time() - start_time
+    calc_time_str = sec_to_str(calc_time_sec)
+
+    base_folder = os.path.dirname(__file__)
+    file_path = base_folder + "/" + f"{generation}.csv"
+    with open(file_path, "w") as f:
+        writer = csv.writer(f)
+        rows = [
+            ["推定状態数", "計測時間", "実行日時"],
+            [str(estimated_num), calc_time_str, now_str],
+        ]
+        writer.writerows(rows)
     
