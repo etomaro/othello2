@@ -201,7 +201,6 @@ class TestSymmetory(unittest.TestCase):
         _normalizationのテスト
         
         1. 全ての対称性を正規化しても同じ値になること
-        2. 最小値が選択されていること
         """
         black_board = 0xa1c0000f20b08109
         white_board = 0x42c1410050826c0
@@ -209,11 +208,8 @@ class TestSymmetory(unittest.TestCase):
         exp = normalization(black_board, white_board)
         
         # 全ての対称性を取得
-        symmetorys= list(_transformations(black_board, white_board))
+        symmetorys = list(_transformations(black_board, white_board))
         # 1. 全ての対称性を正規化しても同じ値になること
         for sym_black, sym_white in symmetorys:
             res = normalization(sym_black, sym_white)
             self.assertEqual(exp, res)
-            
-        
-        
