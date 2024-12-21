@@ -1,39 +1,35 @@
 """
 世代ごとの推定最大状態数を求める
 
-計算上省くことができるパターン
-1. 石の数
-2. 黒と白に同じマスに存在する場合
-3. 中央の4マスが空白
-4. 孤立石
-   特性上連続性があるため各8方向に石が1つもない状態は省くことができる
-5. 対称性により同じ状態とみなせる盤面
-   ※ 対称性により省ける場合、必ず黒石と白石のそれぞれの数が同じになる
 """
 from itertools import combinations
 
+from env_v2.common.symmetory import normalization
 
 def calc(generation: int) -> int:
     """
     世代ごとの推定最大状態数を求める
     ※ 一旦可能な状態を保存しない。数だけ出力
 
+    [ロジック]
+    1. 世代による黒と白石の合計数を求める
+    2. 黒と白石のパターンをすべて洗い出す
+       ただし、黒と白色の数が同数ではない場合は数を入れ替えたものは必ず同じ推定状態数になるため計算しない
+    3. 黒と白石の数が確定している状態でその推定状態数を算出
+    4. 3で求めた個数をすべて合計することで指定された世代の推定状態数を求める
+      
     args:
       generation: 世代(1-60)
     returns:
       estimated_state_num
     """
-    estimated_state_num = 0
-
-    # 世代による黒と石の合計数(石の合計数)
+    # 1. 世代による黒と白石の合計数を求める
     stone_num = 4 + generation
-    """世代による黒石と白石のパターン([(black_stone_num, white_stone_num), ...])
-    ただ、黒と白の数が同数ではない場合入れ替えればいいだけなので(2倍)片方だけを求める
-    黒と白の数が同数の場合はそのまま求める
-    """
-    stone_pattern_not_same_num = []
-    stone_pattern_same_num = []
+    # 2. 黒と白石のパターンをすべて洗い出す
+    stone_pattern_not_same_num = []  # 黒と白の数が同数ではない
+    stone_pattern_same_num = []  # 黒と白の数が同数
     for black_stone_num in range(stone_num+1):
+        # 合計石数の半数を超えた場合ループ終了
         if black_stone_num > (stone_num/2):
             break
     
@@ -46,22 +42,39 @@ def calc(generation: int) -> int:
     print(f"stone_pattern_not_same_num: {stone_pattern_not_same_num}")
     print(f"stone_pattern_same_num: {stone_pattern_same_num}")
 
+    # ---3. 黒と白石の数が確定している状態でその推定状態数を算出---
+    estimated_state_num = 0
+
     # 黒石と白石の同数ではないパターンのループ
     for stones_num in stone_pattern_not_same_num:
-        black_stone_num, white_stone_num = stones_num 
-        estimated_state_num += calc_state_num_by_white_black_num(black_stone_num, white_stone_num) * 2
+        black_stone_num, white_stone_num = stones_num
+        # 黒と白の数を入れ替えて計算せずに2倍する
+        estimated_state_num += _calc_state_num_by_white_black_num(black_stone_num, white_stone_num) * 2
     
     # 黒石と白石の同数のパターン
     for stone_num in stone_pattern_same_num:
         black_stone_num, white_stone_num = stones_num 
-        estimated_state_num += calc_state_num_by_white_black_num(black_stone_num, white_stone_num)
+        estimated_state_num += _calc_state_num_by_white_black_num(black_stone_num, white_stone_num)
     
+    # 4. 3で求めた個数をすべて合計することで指定された世代の推定状態数を求める
     return estimated_state_num
 
 
-def calc_state_num_by_white_black_num(black_stone_num: int, white_stone_num: int) -> int:
+def _calc_state_num_by_white_black_num(black_stone_num: int, white_stone_num: int) -> int:
     """
     黒石と白石の数が確定している状態での推定最大状態数を求める
+
+    [計算上省くことができるパターン]
+      1. 石の数
+      2. 黒と白に同じマスに存在する場合
+      3. 中央の4マスが空白
+      4. 孤立石
+         特性上連続性があるため各8方向に石が1つもない状態は省くことができる
+      5. 対称性により同じ状態とみなせる盤面
+         ※ 対称性により省ける場合、必ず黒石と白石のそれぞれの数が同じになる
+    [省くことができないパターン]
+      1. 黒と白石の数が同数ではい場合入れ替えることで推定状態数を2倍と計算しているが
+         ゲーム進行上ありえない盤面を追加することになる
 
     args:
       black_stone_num: 黒石の数
@@ -81,46 +94,60 @@ def calc_state_num_by_white_black_num(black_stone_num: int, white_stone_num: int
     """
     # 64ビットのうち、n個のビットを1にするすべてのパターンを生成
     # ビット番号は0～63で下位ビットが0番とする
-    black_stones = []
+    black_boards = []
     for combo in combinations(range(64), black_stone_num):
         # comboは1にするビット位置のタプル
         # 64ビット整数の値を構築
         value = 0
         for bit in combo:
             value |= (1<<bit)
-        black_stones.append(value)
+        black_boards.append(value)
 
-    white_stones = []
+    white_boards = []
     for combo in combinations(range(64), white_stone_num):
         # comboは1にするビット位置のタプル
         # 64ビット整数の値を構築
         value = 0
         for bit in combo:
             value |= (1<<bit)
-        white_stones.append(value)
+        white_boards.append(value)
     
+    """
+    状態の持ち方で一番メモリ節約になる方法を検討
+    1. str(black_board)_str(white_board): 74bytes
+       ※ 先頭の0xを排除
+    2. tuple: 40bytes
+       (black_board, white_board)
+    3. hash化: 105bytes
+       hashlib.sha256(state.encode()).hexdigest(): 必ず105bytesになる
+    4. black_board(int) + white_board(int)
+       ※ 数値として持つ方法。単純な合計値だと同じ状態でなくても合計値が同じ場合になるため除外
+    """
     # 黒と白のパターンごとに除外できる盤面を排除する
-    for black_stone in black_stones:
-        for white_stone in white_stones:
+    estimated_boards = set()
+    for black_board in black_boards:
+        for white_board in white_boards:
             # 1. 石の数 はすでに除外済み
             # 2. 黒と白に同じマスに存在する場合
-            if (black_stone & white_stone) != 0:
+            if (black_board & white_board) != 0:
                 continue
             # 3. 中央の4マスが空白
             center_4_stone_mask = 0x0000001818000000
-            if (center_4_stone_mask & (black_stone | white_stone)) != center_4_stone_mask:
+            if (center_4_stone_mask & (black_board | white_board)) != center_4_stone_mask:
                 continue
 
             # 4. 孤立石: 特性上連続性があるため各8方向に石が1つもない状態は省くことができる
-            board = black_stone | white_stone
-            if judge_alone_stone(board):
+            board = black_board | white_board
+            if _judge_alone_stone(board):
                 continue
             
-            estimated_num_by_white_black_num += 1  # インクリメント
+            # 5. 対称性により同じ状態とみなせる盤面をsetの重複で排除する
+            normalization_board = normalization(black_board, white_board)
+            estimated_boards.add(normalization_board)
     
-    return estimated_num_by_white_black_num
+    return len(estimated_boards)
 
-def judge_alone_stone(board: int) -> bool:
+def _judge_alone_stone(board: int) -> bool:
     """
     孤立石かどうかを判定する
 
