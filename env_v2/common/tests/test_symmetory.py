@@ -136,7 +136,7 @@ class TestSymmetory(unittest.TestCase):
 
         return datas        
 
-    def test_datas_transformations(self):
+    def test_symmetory(self):
         """
         transformationsのテストデータと期待値を作成する
 
@@ -157,5 +157,41 @@ class TestSymmetory(unittest.TestCase):
             # rotate270
             self.assertEqual(data["exp_rotate270"], _rotate270(board))
         
-    def test_symmetory(self):
-        self.assertEqual(1,1)
+    def test_transformations(self):
+        """
+        transformationsのテスト
+
+        1. black_board: 0xa1c0000f20b08109, white_board: 0x42c1410050826c0
+           
+           [求め方]
+           0xb1d36a8f6ab6c12fと0x143f7e904f0e66e6のかぶっているビットを0にしてそれぞれ作成
+           black_board = 0xb1d36a8f6ab6c12f
+           white_board = 0x143f7e904f0e66e6
+           new_black_board = black_board ^ (black_board & white_board)
+           new_white_board = white_board ^ (black_board & white_board)
+        """
+        black_board = 0xa1c0000f20b08109
+        white_board = 0x42c1410050826c0
+
+        res = list(_transformations(black_board, white_board))
+        
+        exp = [
+            # 1. そのまま(0度回転)
+            (black_board, white_board),
+            # 2. 90度回転
+            (_rotate90(black_board), _rotate90(white_board)),
+            # 3. 180度回転
+            (_rotate180(black_board), _rotate180(white_board)),
+            # 4. 270度回転
+            (_rotate270(black_board), _rotate270(white_board)),
+            # 5. 水平反転
+            (_horizontal_flip(black_board), _horizontal_flip(white_board)),
+            # 6. 90度回転 + 水平反転
+            (_horizontal_flip(_rotate90(black_board)), _horizontal_flip(_rotate90(white_board))),
+            # 7. 180度回転 + 水平反転(=縦軸反転)
+            (_horizontal_flip(_rotate180(black_board)), _horizontal_flip(_rotate180(white_board))),
+            # 8. 270度回転 + 水平反転
+            (_horizontal_flip(_rotate270(black_board)), _horizontal_flip(_rotate270(white_board))),
+        ]
+
+        self.assertEqual(exp, res)
