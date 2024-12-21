@@ -195,3 +195,6 @@ class TestSymmetory(unittest.TestCase):
         ]
 
         self.assertEqual(exp, res)
+        
+    def test_normalization(self):
+        
