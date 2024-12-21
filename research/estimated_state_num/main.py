@@ -237,7 +237,8 @@ def sec_to_str(calc_time: int) -> str:
 
 
 if __name__ == "__main__":
-    generation = 0
+    # !!!適切な世代に修正!!!
+    generation = 2
 
     start_time = time.time()
     estimated_num = calc(generation)
@@ -248,7 +249,7 @@ if __name__ == "__main__":
     now_dt = datetime.now(tz=ZoneInfo("Asia/Tokyo"))
     now_str = f"{now_dt.year}/{now_dt.month}/{now_dt.day} {now_dt.hour}:{now_dt.minute}"
 
-    calc_time_sec = time.time() - start_time
+    calc_time_sec = int(time.time() - start_time)
     calc_time_str = sec_to_str(calc_time_sec)
 
     base_folder = os.path.dirname(__file__)
