@@ -38,7 +38,7 @@ def _horizontal_flip(board: int) -> int:
     """
     各行8ビットを左右反転する
 
-    8,6,...1行目の順で反転していく
+    8,7,...1行目の順で反転していく
     """
     def reverse_8(row: int) -> int:
         row = ((row & 0xF0) >> 4) | ((row & 0x0F) << 4)
