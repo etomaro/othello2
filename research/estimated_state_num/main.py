@@ -259,14 +259,13 @@ def sec_to_str(calc_time: int) -> str:
 
 if __name__ == "__main__":
     # !!!適切な世代に修正!!!
-    generation = 3
+    generation = 2
 
     start_time = time.time()
     estimated_num = calc(generation)
     print(f"世代: {generation}, 推定状態数: {estimated_num}")
 
     # CSV出力
-
     now_dt = datetime.now(tz=ZoneInfo("Asia/Tokyo"))
     now_str = f"{now_dt.year}/{now_dt.month}/{now_dt.day} {now_dt.hour}:{now_dt.minute}"
 
