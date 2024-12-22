@@ -80,16 +80,25 @@ def calc(generation: int) -> int:
     # ---3. 黒と白石の数が確定している状態でその推定状態数を算出---
     estimated_state_num = 0
 
+    # debug用カウンタ
+    done_count = 0
+
     # 黒石と白石の同数ではないパターンのループ
     for stones_num in stone_pattern_not_same_num:
         black_stone_num, white_stone_num = stones_num
         # 黒と白の数を入れ替えて計算せずに2倍する
         estimated_state_num += _calc_state_num_by_white_black_num(black_stone_num, white_stone_num) * 2
+
+        done_count += 1
+        print(f"{done_count} / {len(stone_pattern_not_same_num)+len(stone_pattern_same_num)} done.")
     
     # 黒石と白石の同数のパターン
     for stone_num in stone_pattern_same_num:
         black_stone_num, white_stone_num = stones_num 
         estimated_state_num += _calc_state_num_by_white_black_num(black_stone_num, white_stone_num)
+
+        done_count += 1
+        print(f"{done_count} / {len(stone_pattern_not_same_num)+len(stone_pattern_same_num)} done.")
     
     # 4. 3で求めた個数をすべて合計することで指定された世代の推定状態数を求める
     return estimated_state_num
@@ -259,7 +268,7 @@ def sec_to_str(calc_time: int) -> str:
 
 if __name__ == "__main__":
     # !!!適切な世代に修正!!!
-    generation = 2
+    generation = 3
 
     start_time = time.time()
     estimated_num = calc(generation)
