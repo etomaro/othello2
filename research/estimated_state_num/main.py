@@ -11,17 +11,47 @@ from zoneinfo import ZoneInfo
 
 from env_v2.common.symmetory import normalization
 
+
+# 中心4マスの位置
+CENTER_POS = [27, 28, 35, 36]
+NOT_CENTER_POS = [
+    0, 1, 2, 3, 4, 5, 6, 7,
+    8, 9, 10, 11, 12, 13, 14, 15,
+    16, 17, 18, 19, 20, 21, 22, 23,
+    24, 25, 26, 29, 30, 31,
+    32, 33, 34, 37, 38, 39,
+    40, 41, 42, 43, 44, 45, 46, 47,
+    48, 49, 50, 51, 52, 53, 54, 55,
+    56, 57, 58, 59, 60, 61, 62, 63
+]
+
+
+
 def calc(generation: int) -> int:
     """
     世代ごとの推定最大状態数を求める
     ※ 一旦可能な状態を保存しない。数だけ出力
 
-    [ロジック]
-    1. 世代による黒と白石の合計数を求める
-    2. 黒と白石のパターンをすべて洗い出す
-       ただし、黒と白色の数が同数ではない場合は数を入れ替えたものは必ず同じ推定状態数になるため計算しない
-    3. 黒と白石の数が確定している状態でその推定状態数を算出
-    4. 3で求めた個数をすべて合計することで指定された世代の推定状態数を求める
+    [ロジック1]
+			1. 世代による黒と白石の合計数を求める
+			2. 黒と白石の数のパターンをすべて洗い出す
+			ただし、黒と白色の数が同数ではない場合は数を入れ替えたものは必ず同じ推定状態数になるため計算しない
+			3. 黒と白石の数が確定している状態でその推定状態数を算出
+			4. 3で求めた個数をすべて合計することで指定された世代の推定状態数を求める
+
+			※ 問題点
+			2で黒と白別々ですべてのパターンを洗い出して2つの乗数文ループしてします。
+			またその中に白と黒で同じマスのパターンなども存在する(ループ内で除外されるが無駄なループ)
+
+    [ロジック2]
+      1. 世代による黒と白の合計数を求める
+      2. 黒と白石の数のパターンをすべて洗い出す
+      3. 中心の4マスを除いた中から(合計数-4)個のマスを選択するパターンをすべて列挙
+         -> 白か黒の石が置かれるマス
+      4. 黒と白石の数のパターンごとにループ
+      5. (3で求めたマス+中心の4マス)の中から黒石の数を元に黒石の置くマスのパターンをすべて列挙
+         以下これを元にループ
+      6. 黒石の置くマスと(黒石と白石の)置くマスが決まっているので白石の置くマスも自動的に決まる
       
     args:
       generation: 世代(1-60)
@@ -80,44 +110,8 @@ def _calc_state_num_by_white_black_num(black_stone_num: int, white_stone_num: in
     [省くことができないパターン]
       1. 黒と白石の数が同数ではい場合入れ替えることで推定状態数を2倍と計算しているが
          ゲーム進行上ありえない盤面を追加することになる
-
-    args:
-      black_stone_num: 黒石の数
-      white_stone_num: 白石の数
-    returns:
-      estimated_num_by_white_black_num: 石と白石の数が確定している状態での推定最大状態数
-    """
-
-    """黒、白それぞれビットボードで可能なパターンを列挙
-    64Cstone_num
-        ex)stone_num: 4
-            64C4=635376
-
-        64Crで(r=0-64)取りうる最大値は10の18乗(100京)
-        ※ research/estimated_state_num/n_C_r/report.csvを参照
-    """
-    # 64ビットのうち、n個のビットを1にするすべてのパターンを生成
-    # ビット番号は0～63で下位ビットが0番とする
-    black_boards = []
-    for combo in combinations(range(64), black_stone_num):
-        # comboは1にするビット位置のタプル
-        # 64ビット整数の値を構築
-        value = 0
-        for bit in combo:
-            value |= (1<<bit)
-        black_boards.append(value)
-
-    white_boards = []
-    for combo in combinations(range(64), white_stone_num):
-        # comboは1にするビット位置のタプル
-        # 64ビット整数の値を構築
-        value = 0
-        for bit in combo:
-            value |= (1<<bit)
-        white_boards.append(value)
     
-    """
-    状態の持ち方で一番メモリ節約になる方法を検討
+    [状態の持ち方で一番メモリ節約になる方法を検討]
     1. str(black_board)_str(white_board): 74bytes
        ※ 先頭の0xを排除
     2. tuple: 40bytes
@@ -126,19 +120,46 @@ def _calc_state_num_by_white_black_num(black_stone_num: int, white_stone_num: in
        hashlib.sha256(state.encode()).hexdigest(): 必ず105bytesになる
     4. black_board(int) + white_board(int)
        ※ 数値として持つ方法。単純な合計値だと同じ状態でなくても合計値が同じ場合になるため除外
+
+    [黒、白それぞれビットボードで可能なパターンを列挙]
+    64Cstone_num
+        ex)stone_num: 4
+            64C4=635376
+
+        64Crで(r=0-64)取りうる最大値は10の18乗(100京)
+        ※ research/estimated_state_num/n_C_r/report.csvを参照
+        
+        
+    args:
+      black_stone_num: 黒石の数
+      white_stone_num: 白石の数
+    returns:
+      estimated_num_by_white_black_num: 石と白石の数が確定している状態での推定最大状態数
     """
+    stone_num = black_stone_num + white_stone_num
     # 黒と白のパターンごとに除外できる盤面を排除する
     estimated_boards = set()
-    for black_board in black_boards:
-        for white_board in white_boards:
+    # 中心4マスは強制的に使用するので(64-60)の内(石の数-4)のパターンでループ
+    for stone_pos_without_center in combinations(NOT_CENTER_POS, stone_num - 4):
+        # stone_pos_without_centerは中心を除いた石が置けるマスのインデックスのtuple
+        # stone_pos_with_centerは中心を含めた石がおけるマスのインデックスのリスト
+        stone_pos_with_center = list(stone_pos_without_center) + CENTER_POS
+        
+        # 石を置くマスの内黒石の数のパターンでループ
+        for black_stone_pos in combinations(stone_pos_with_center, black_stone_num):
+            black_board = 0x0
+            for pos in black_stone_pos:
+                black_board |= (1<<pos)
+            
+            # black_boardに入らなかった残りのマスが白石
+            white_board = 0x0
+            for pos in stone_pos_with_center:
+                if pos not in black_stone_pos:
+                    white_board |= (1<<pos)
+
             # 1. 石の数 はすでに除外済み
-            # 2. 黒と白に同じマスに存在する場合
-            if (black_board & white_board) != 0:
-                continue
-            # 3. 中央の4マスが空白
-            center_4_stone_mask = 0x0000001818000000
-            if (center_4_stone_mask & (black_board | white_board)) != center_4_stone_mask:
-                continue
+            # 2. 黒と白に同じマスに存在するはすでに除外済み
+            # 3. 中央の4マスが空白はすでに除外済み
 
             # 4. 孤立石: 特性上連続性があるため各8方向に石が1つもない状態は省くことができる
             board = black_board | white_board
@@ -238,7 +259,7 @@ def sec_to_str(calc_time: int) -> str:
 
 if __name__ == "__main__":
     # !!!適切な世代に修正!!!
-    generation = 2
+    generation = 3
 
     start_time = time.time()
     estimated_num = calc(generation)
