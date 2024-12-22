@@ -268,7 +268,7 @@ def sec_to_str(calc_time: int) -> str:
 
 if __name__ == "__main__":
     # !!!適切な世代に修正!!!
-    generation = 4
+    generation = 5
 
     start_time = time.time()
     estimated_num = calc(generation)
