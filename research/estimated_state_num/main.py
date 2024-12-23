@@ -27,6 +27,9 @@ NOT_CENTER_POS = [
 ]
 
 
+# multiprocessing 用: ワーカーでタプルを受け取り、本来の処理に回すラッパー関数
+def worker_wrapper(args):
+    return _calc_state_num_by_white_black_num(*args)
 
 def calc(generation: int) -> int:
     """
@@ -85,9 +88,17 @@ def calc(generation: int) -> int:
 
         stone_num = black_stone_num + white_stone_num
         # -- 並列で処理したい対象(外側ループ)を準備 --
-        # ここでは、まず全ての stone_pos_without_center の組合せをあらかじめリスト化しておく
-        # ※ 事前にリスト化するとメモリ使用量が大きくなる可能性があるので注意
-        target_list = list(combinations(NOT_CENTER_POS, stone_num - 4))
+        def get_yield_stone_pos_without_center():
+            # stone_pos_without_centerの組み合わせを予め作成。ただしyield
+            # ここで yield するだけ。リストは作らない
+            for comb in combinations(NOT_CENTER_POS, stone_num - 4):
+                yield (
+                    comb,
+                    black_stone_num,
+                    CENTER_POS,
+                    _judge_alone_stone,
+                    normalization
+                )
 
         # -----------------------------------------------------------
         #  マルチプロセスで各 stone_pos_without_center の処理を行う
@@ -105,24 +116,15 @@ def calc(generation: int) -> int:
             # 最終的に set(normalized_boards) を返す
 
             # プロセスプールで並列実行 (map や imap などもOK)
-            results = pool.starmap(
-                _calc_state_num_by_white_black_num, 
-                [
-                    (
-                        comb, 
-                        black_stone_num,
-                        CENTER_POS, 
-                        _judge_alone_stone, 
-                        normalization
-                    ) 
-                    for comb in target_list
-                ]
+            results = pool.imap(
+                worker_wrapper,
+                get_yield_stone_pos_without_center(),
             )
 
-        # 結果をマージ (各プロセスの set を union)
-        estimated_boards = set()
-        for s in results:
-            estimated_boards |= s  # set の union 代入
+            # 結果をマージ (各プロセスの set を union)
+            estimated_boards = set()
+            for s in results:
+                estimated_boards |= s  # set の union 代入
         
         if black_stone_num != white_stone_num:
             estimated_state_num += len(estimated_boards) * 2  # 黒と白の数を入れ替えて計算せずに2倍する
