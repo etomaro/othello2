@@ -8,6 +8,7 @@ import time
 import os
 from datetime import datetime
 from zoneinfo import ZoneInfo
+import multiprocessing
 
 from env_v2.common.symmetory import normalization
 
@@ -61,21 +62,16 @@ def calc(generation: int) -> int:
     # 1. 世代による黒と白石の合計数を求める
     stone_num = 4 + generation
     # 2. 黒と白石のパターンをすべて洗い出す
-    stone_pattern_not_same_num = []  # 黒と白の数が同数ではない
-    stone_pattern_same_num = []  # 黒と白の数が同数
+    stone_num_pattern = []
     for black_stone_num in range(stone_num+1):
         # 合計石数の半数を超えた場合ループ終了
         if black_stone_num > (stone_num/2):
             break
     
         white_stone_num = stone_num - black_stone_num
-        if black_stone_num != white_stone_num:
-            stone_pattern_not_same_num.append((black_stone_num, white_stone_num))
-        else:
-            stone_pattern_same_num.append((black_stone_num, white_stone_num))
+        stone_num_pattern.append((black_stone_num, white_stone_num))
         
-    print(f"stone_pattern_not_same_num: {stone_pattern_not_same_num}")
-    print(f"stone_pattern_same_num: {stone_pattern_same_num}")
+    print(f"stone_num_pattern: {stone_num_pattern}")
 
     # ---3. 黒と白石の数が確定している状態でその推定状態数を算出---
     estimated_state_num = 0
@@ -83,28 +79,65 @@ def calc(generation: int) -> int:
     # debug用カウンタ
     done_count = 0
 
-    # 黒石と白石の同数ではないパターンのループ
-    for stones_num in stone_pattern_not_same_num:
+    # 黒石と白石の数のパターンでループ
+    for stones_num in stone_num_pattern:
         black_stone_num, white_stone_num = stones_num
-        # 黒と白の数を入れ替えて計算せずに2倍する
-        estimated_state_num += _calc_state_num_by_white_black_num(black_stone_num, white_stone_num) * 2
+
+        stone_num = black_stone_num + white_stone_num
+        # -- 並列で処理したい対象(外側ループ)を準備 --
+        # ここでは、まず全ての stone_pos_without_center の組合せをあらかじめリスト化しておく
+        # ※ 事前にリスト化するとメモリ使用量が大きくなる可能性があるので注意
+        target_list = list(combinations(NOT_CENTER_POS, stone_num - 4))
+
+        # -----------------------------------------------------------
+        #  マルチプロセスで各 stone_pos_without_center の処理を行う
+        # -----------------------------------------------------------
+        #   1) Pool を作る
+        #   2) apply_async / map などで並列タスクに投げる
+        #   3) 各プロセスが局所的に得た set を返し、メインプロセスで union する
+        # -----------------------------------------------------------
+        with multiprocessing.Pool() as pool:
+            # map の引数にするためのラップ関数を定義
+            # stone_pos_without_center を受け取り → 各プロセス内で黒石配置ループを回し
+            # 最終的に set(normalized_boards) を返す
+
+            # プロセスプールで並列実行 (map や imap などもOK)
+            results = pool.starmap(
+                _calc_state_num_by_white_black_num, 
+                [
+                    (
+                        comb, 
+                        black_stone_num,
+                        CENTER_POS, 
+                        _judge_alone_stone, 
+                        normalization
+                    ) 
+                    for comb in target_list
+                ]
+            )
+
+        # 結果をマージ (各プロセスの set を union)
+        estimated_boards = set()
+        for s in results:
+            estimated_boards |= s  # set の union 代入
+        
+        if black_stone_num != white_stone_num:
+            estimated_state_num += len(estimated_boards) * 2  # 黒と白の数を入れ替えて計算せずに2倍する
+        else:
+            estimated_state_num += len(estimated_boards)
+        del estimated_boards
 
         done_count += 1
-        print(f"{done_count} / {len(stone_pattern_not_same_num)+len(stone_pattern_same_num)} done.")
-    
-    # 黒石と白石の同数のパターン
-    for stone_num in stone_pattern_same_num:
-        black_stone_num, white_stone_num = stones_num 
-        estimated_state_num += _calc_state_num_by_white_black_num(black_stone_num, white_stone_num)
-
-        done_count += 1
-        print(f"{done_count} / {len(stone_pattern_not_same_num)+len(stone_pattern_same_num)} done.")
+        print(f"{done_count} / {len(stone_num_pattern)} done.")
     
     # 4. 3で求めた個数をすべて合計することで指定された世代の推定状態数を求める
     return estimated_state_num
 
 
-def _calc_state_num_by_white_black_num(black_stone_num: int, white_stone_num: int) -> int:
+def _calc_state_num_by_white_black_num(
+        stone_pos_without_center: tuple, black_stone_num: int,
+        CENTER_POS: list, _judge_alone_stone, normalization
+    ) -> set:
     """
     黒石と白石の数が確定している状態での推定最大状態数を求める
 
@@ -145,41 +178,37 @@ def _calc_state_num_by_white_black_num(black_stone_num: int, white_stone_num: in
     returns:
       estimated_num_by_white_black_num: 石と白石の数が確定している状態での推定最大状態数
     """
-    stone_num = black_stone_num + white_stone_num
-    # 黒と白のパターンごとに除外できる盤面を排除する
-    estimated_boards = set()
-    # 中心4マスは強制的に使用するので(64-60)の内(石の数-4)のパターンでループ
-    for stone_pos_without_center in combinations(NOT_CENTER_POS, stone_num - 4):
-        # stone_pos_without_centerは中心を除いた石が置けるマスのインデックスのtuple
-        # stone_pos_with_centerは中心を含めた石がおけるマスのインデックスのリスト
-        stone_pos_with_center = list(stone_pos_without_center) + CENTER_POS
-        
-        # 石を置くマスの内黒石の数のパターンでループ
-        for black_stone_pos in combinations(stone_pos_with_center, black_stone_num):
-            black_board = 0x0
-            for pos in black_stone_pos:
-                black_board |= (1<<pos)
-            
-            # black_boardに入らなかった残りのマスが白石
-            white_board = 0x0
-            for pos in stone_pos_with_center:
-                if pos not in black_stone_pos:
-                    white_board |= (1<<pos)
-
-            # 1. 石の数 はすでに除外済み
-            # 2. 黒と白に同じマスに存在するはすでに除外済み
-            # 3. 中央の4マスが空白はすでに除外済み
-
-            # 4. 孤立石: 特性上連続性があるため各8方向に石が1つもない状態は省くことができる
-            board = black_board | white_board
-            if _judge_alone_stone(board):
-                continue
-            
-            # 5. 対称性により同じ状態とみなせる盤面をsetの重複で排除する
-            normalization_board = normalization(black_board, white_board)
-            estimated_boards.add(normalization_board)
+    local_estimated_boards = set()
     
-    return len(estimated_boards)
+    # stone_pos_with_center は「中心4マス(CENTER_POS)」を足した配置可能マス
+    stone_pos_with_center = list(stone_pos_without_center) + CENTER_POS
+
+    # 黒石を置く組合せをループ
+    for black_stone_pos in combinations(stone_pos_with_center, black_stone_num):
+        black_board = 0x0
+        for pos in black_stone_pos:
+            black_board |= (1 << pos)
+        
+        # 残りが白石
+        white_board = 0x0
+        for pos in stone_pos_with_center:
+            if pos not in black_stone_pos:
+                white_board |= (1 << pos)
+        
+        # 1. 石の数 はすでに除外済み
+        # 2. 黒と白に同じマスに存在するはすでに除外済み
+        # 3. 中央の4マスが空白はすでに除外済み
+
+        # 4. 孤立石チェック
+        board = black_board | white_board
+        if _judge_alone_stone(board):
+            continue
+
+        # 5. 対称性で正規化して重複排除
+        norm_board = normalization(black_board, white_board)
+        local_estimated_boards.add(norm_board)
+    
+    return local_estimated_boards
 
 def _judge_alone_stone(board: int) -> bool:
     """
@@ -268,7 +297,7 @@ def sec_to_str(calc_time: int) -> str:
 
 if __name__ == "__main__":
     # !!!適切な世代に修正!!!
-    generation = 5
+    generation = 2
 
     start_time = time.time()
     estimated_num = calc(generation)
