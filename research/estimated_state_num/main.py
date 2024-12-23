@@ -183,6 +183,11 @@ def _calc_state_num_by_white_black_num(
     # stone_pos_with_center は「中心4マス(CENTER_POS)」を足した配置可能マス
     stone_pos_with_center = list(stone_pos_without_center) + CENTER_POS
 
+    # 1) stone_pos_with_center をビットマスク化
+    mask_of_stone_pos_with_center = 0
+    for pos in stone_pos_with_center:
+        mask_of_stone_pos_with_center |= (1 << pos)
+
     # 黒石を置く組合せをループ
     for black_stone_pos in combinations(stone_pos_with_center, black_stone_num):
         black_board = 0x0
@@ -297,7 +302,7 @@ def sec_to_str(calc_time: int) -> str:
 
 if __name__ == "__main__":
     # !!!適切な世代に修正!!!
-    generation = 2
+    generation = 5
 
     start_time = time.time()
     estimated_num = calc(generation)
