@@ -95,6 +95,9 @@ def calc(generation: int) -> int:
         #   1) Pool を作る
         #   2) apply_async / map などで並列タスクに投げる
         #   3) 各プロセスが局所的に得た set を返し、メインプロセスで union する
+        #
+        # 並列外でマスの位置を指定する
+        # 並列内でマス内の黒と白の位置を指定する
         # -----------------------------------------------------------
         with multiprocessing.Pool() as pool:
             # map の引数にするためのラップ関数を定義
@@ -194,11 +197,8 @@ def _calc_state_num_by_white_black_num(
         for pos in black_stone_pos:
             black_board |= (1 << pos)
         
-        # 残りが白石
-        white_board = 0x0
-        for pos in stone_pos_with_center:
-            if pos not in black_stone_pos:
-                white_board |= (1 << pos)
+        # 残りは白石
+        white_board = mask_of_stone_pos_with_center & ~black_board  # TODO: ビット反転の処理が正しいか調べる
         
         # 1. 石の数 はすでに除外済み
         # 2. 黒と白に同じマスに存在するはすでに除外済み
