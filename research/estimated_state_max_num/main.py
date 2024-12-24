@@ -11,7 +11,7 @@ from zoneinfo import ZoneInfo
 import multiprocessing
 
 from env_v2.common.symmetory import normalization
-
+from common.dt_utils import sec_to_str
 
 # 中心4マスの位置
 CENTER_POS = [27, 28, 35, 36]
@@ -334,29 +334,6 @@ def _judge_alone_stone(board: int) -> bool:
 
     # すべての石があるマスを調べて1つも孤立石がない場合False
     return False
-
-def sec_to_str(calc_time: int) -> str:
-    """
-    秒を{hour}h{minute}m{seconds}sの形式に変換する
-    """
-    minute_slot = 60
-    hour_slot = 60*60
-
-    calc_time_str = ""
-    if (calc_time // hour_slot) >= 1:
-        # 1時間以上の場合
-        hour = calc_time // hour_slot
-        calc_time -= hour * hour_slot
-        calc_time_str += f"{hour}h"
-    if (calc_time // minute_slot) >= 1:
-        # 1分以上の場合
-        minute = calc_time // minute_slot 
-        calc_time -= minute * minute_slot 
-        calc_time_str += f"{minute}m"
-    # 秒の追加
-    calc_time_str += f"{calc_time}s"
-
-    return calc_time_str
 
 
 if __name__ == "__main__":

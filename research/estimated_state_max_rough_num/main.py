@@ -4,29 +4,9 @@ import csv
 from datetime import datetime 
 from zoneinfo import ZoneInfo
 
+from common.dt_utils import sec_to_str
 
-def _sec_to_str(calc_time: int) -> str:
-    """
-    秒を{hour}h{minute}m{seconds}sの形式に変換する
-    """
-    minute_slot = 60
-    hour_slot = 60*60
 
-    calc_time_str = ""
-    if (calc_time // hour_slot) >= 1:
-        # 1時間以上の場合
-        hour = calc_time // hour_slot
-        calc_time -= hour * hour_slot
-        calc_time_str += f"{hour}h"
-    if (calc_time // minute_slot) >= 1:
-        # 1分以上の場合
-        minute = calc_time // minute_slot 
-        calc_time -= minute * minute_slot 
-        calc_time_str += f"{minute}m"
-    # 秒の追加
-    calc_time_str += f"{calc_time}s"
-
-    return calc_time_str
 
 def calc(generation: int) -> int:
     """
@@ -44,7 +24,7 @@ def calc(generation: int) -> int:
     stone_num_without_center = generation  # 中心マス以外の石の数
 
     # 1. 中心を除いた石のおけるパターン数を算出(=中心を除いた60マスの内(黒と白のおける石の数)-4(中心のマス)のパターン数)
-    
+
 if __name__ == "__main__":
     header = ["世代", "推定状態数", "計測時間"]
     datas = {}  # {generation: {estimated_num: N, calc_time: M}}
@@ -57,7 +37,7 @@ if __name__ == "__main__":
         estimated_num = calc(generation)
 
         calc_time_sec = int(time.time() - start_time)
-        calc_time_str = _sec_to_str(calc_time_sec)
+        calc_time_str = sec_to_str(calc_time_sec)
 
         datas[generation] = {"estimated_num": estimated_num, "calc_time": calc_time_str}
         
