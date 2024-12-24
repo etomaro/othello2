@@ -6,6 +6,7 @@ from zoneinfo import ZoneInfo
 
 from common.dt_utils import sec_to_str
 from common.n_C_r import json_utils
+from common.numerical_utils import get_powers_of_ten, get_with_jp_unit
 
 
 
@@ -56,8 +57,8 @@ def calc(generation: int) -> int:
     return estimated_num
 
 if __name__ == "__main__":
-    header = ["世代", "推定状態数", "計測時間"]
-    datas = {}  # {generation: {estimated_num: N, calc_time: M}}
+    header = ["世代", "推定状態数", "推定状態数(単位)", "10の何乗か", "計測時間"]
+    datas = {}  # {generation: {estimated_"num: N, calc_time: M}}
     for generation in range(1, 60+1):
         print(f"世代: {generation} calc start.")
         
@@ -80,5 +81,10 @@ if __name__ == "__main__":
         writer = csv.writer(f)
         rows = [header]
         for generation, data in datas.items():
-            rows.append([str(generation), data["estimated_num"], data["calc_time"]])
+            rows.append(
+                [
+                    str(generation), data["estimated_num"], get_with_jp_unit(data["estimated_num"]),
+                    get_powers_of_ten(data["estimated_num"]), data["calc_time"]
+                ]
+            )
         writer.writerows(rows)
