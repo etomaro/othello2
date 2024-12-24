@@ -26,6 +26,30 @@ NOT_CENTER_POS = [
     56, 57, 58, 59, 60, 61, 62, 63
 ]
 
+# 黒または白石が置かれるマスの選択パターン数(60_C_r.csvを参照.rは石の数-4を指定)
+patterns_select_stone_pos_by_r = {
+    0: "1",
+    1: "60",
+    2: "1770",
+    3: "3万4220",
+    4: "48万7635",
+    5: "546万1512",
+    6: "5006万3860",
+    7: "3億8620万6920",
+    8: "25億5862万845",
+}
+patterns_select_stone_pos_by_r_int = {
+    0: 1,
+    1: 60,
+    2: 1770,
+    3: 34220,
+    4: 487635,
+    5: 5461512,
+    6: 50063860,
+    7: 386206920,
+    8: 255862845,
+}
+
 
 # multiprocessing 用: ワーカーでタプルを受け取り、本来の処理に回すラッパー関数
 def worker_wrapper(args):
@@ -73,8 +97,13 @@ def calc(generation: int) -> int:
     
         white_stone_num = stone_num - black_stone_num
         stone_num_pattern.append((black_stone_num, white_stone_num))
-        
+
+    print(f"--------calc start--------")
+    print(f"generation: {generation}")
+    print(f"石の数: {stone_num}")
+    print(f"黒または白石が置かれるマスの選択パターン数: {patterns_select_stone_pos_by_r[stone_num-4]}")
     print(f"stone_num_pattern: {stone_num_pattern}")
+    print("----------------------------")
 
     # ---3. 黒と白石の数が確定している状態でその推定状態数を算出---
     estimated_state_num = 0
@@ -82,16 +111,26 @@ def calc(generation: int) -> int:
     # debug用カウンタ
     done_count = 0
 
+    # chunk_size 16で割れる値が適切かも
+    # -> CPU100%を維持できてない(なぜか)
+    # if patterns_select_stone_pos_by_r_int[stone_num-4]%16 == 0:
+    #     chunk_size = patterns_select_stone_pos_by_r_int[stone_num-4]//16
+    # else:
+    #     chunk_size = (patterns_select_stone_pos_by_r_int[stone_num-4]//16) + 1
+
+    chunk_size = 10000  # 1万
+
     # 黒石と白石の数のパターンでループ
     for stones_num in stone_num_pattern:
         black_stone_num, white_stone_num = stones_num
-
         stone_num = black_stone_num + white_stone_num
+
         # -- 並列で処理したい対象(外側ループ)を準備 --
         def get_yield_stone_pos_without_center(chunk_size=1000):
             # stone_pos_without_centerの組み合わせを予め作成。ただしyield
             # ここで yield するだけ。リストは作らない
             # chunkでまとめて処理できるように修正
+            # chunk_sizeは黒または白石が置かれるマスの選択パターン数の(メモリが許す限り)16分割できるサイズが適切かも
             chunk = []
             for comb in combinations(NOT_CENTER_POS, stone_num - 4):
                 # 追加する要素は tuple( comb, black_stone_num, ... ) など、元のコードに合わせる
@@ -136,7 +175,7 @@ def calc(generation: int) -> int:
             # プロセスプールで並列実行 (map や imap などもOK)
             results = pool.imap(
                 worker_wrapper,
-                get_yield_stone_pos_without_center(),
+                get_yield_stone_pos_without_center(chunk_size=chunk_size),
             )
 
             # 結果をマージ (各プロセスの set を union)
@@ -322,26 +361,26 @@ def sec_to_str(calc_time: int) -> str:
 
 if __name__ == "__main__":
     # !!!適切な世代に修正!!!
-    generation = 5
+    for generation in [7]:
 
-    start_time = time.time()
-    estimated_num = calc(generation)
-    print(f"世代: {generation}, 推定状態数: {estimated_num}")
+        start_time = time.time()
+        estimated_num = calc(generation)
+        print(f"世代: {generation}, 推定状態数: {estimated_num}")
 
-    # CSV出力
-    now_dt = datetime.now(tz=ZoneInfo("Asia/Tokyo"))
-    now_str = f"{now_dt.year}/{now_dt.month}/{now_dt.day} {now_dt.hour}:{now_dt.minute}"
+        # CSV出力
+        now_dt = datetime.now(tz=ZoneInfo("Asia/Tokyo"))
+        now_str = f"{now_dt.year}/{now_dt.month}/{now_dt.day} {now_dt.hour}:{now_dt.minute}"
 
-    calc_time_sec = int(time.time() - start_time)
-    calc_time_str = sec_to_str(calc_time_sec)
+        calc_time_sec = int(time.time() - start_time)
+        calc_time_str = sec_to_str(calc_time_sec)
 
-    base_folder = os.path.dirname(__file__)
-    file_path = base_folder + "/" + f"{generation}.csv"
-    with open(file_path, "w") as f:
-        writer = csv.writer(f)
-        rows = [
-            ["推定状態数", "計測時間", "実行日時"],
-            [str(estimated_num), calc_time_str, now_str],
-        ]
-        writer.writerows(rows)
+        base_folder = os.path.dirname(__file__)
+        file_path = base_folder + "/" + f"{generation}.csv"
+        with open(file_path, "w") as f:
+            writer = csv.writer(f)
+            rows = [
+                ["推定状態数", "計測時間", "実行日時"],
+                [str(estimated_num), calc_time_str, now_str],
+            ]
+            writer.writerows(rows)
     
