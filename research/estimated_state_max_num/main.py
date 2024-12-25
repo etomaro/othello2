@@ -12,6 +12,9 @@ import multiprocessing
 
 from env_v2.common.symmetory import normalization
 from common.dt_utils import sec_to_str
+from common.numerical_utils import get_with_jp_unit
+
+
 
 # 中心4マスの位置
 CENTER_POS = [27, 28, 35, 36]
@@ -133,6 +136,18 @@ def calc(generation: int) -> int:
             # chunk_sizeは黒または白石が置かれるマスの選択パターン数の(メモリが許す限り)16分割できるサイズが適切かも
             chunk = []
             for comb in combinations(NOT_CENTER_POS, stone_num - 4):
+
+                # stone_pos_with_center は「中心4マス(CENTER_POS)」を足した配置可能マス
+                stone_pos_with_center = list(comb) + CENTER_POS
+                # 1) stone_pos_with_center をビットマスク化
+                mask_of_stone_pos_with_center = 0
+                for pos in stone_pos_with_center:
+                    mask_of_stone_pos_with_center |= (1 << pos)
+                
+                if _judge_alone_stone(mask_of_stone_pos_with_center):
+                    continue
+
+
                 # 追加する要素は tuple( comb, black_stone_num, ... ) など、元のコードに合わせる
                 chunk.append(comb)
 
@@ -262,11 +277,7 @@ def _calc_state_num_by_white_black_num(
             # 1. 石の数 はすでに除外済み
             # 2. 黒と白に同じマスに存在するはすでに除外済み
             # 3. 中央の4マスが空白はすでに除外済み
-
-            # 4. 孤立石チェック
-            board = black_board | white_board
-            if _judge_alone_stone(board):
-                continue
+            # 4. 孤立石チェックはすでに除外済み
 
             # 5. 対称性で正規化して重複排除
             norm_board = normalization(black_board, white_board)
@@ -338,7 +349,7 @@ def _judge_alone_stone(board: int) -> bool:
 
 if __name__ == "__main__":
     # !!!適切な世代に修正!!!
-    for generation in [7]:
+    for generation in [3]:
 
         start_time = time.time()
         estimated_num = calc(generation)
@@ -356,8 +367,8 @@ if __name__ == "__main__":
         with open(file_path, "w") as f:
             writer = csv.writer(f)
             rows = [
-                ["推定状態数", "計測時間", "実行日時"],
-                [str(estimated_num), calc_time_str, now_str],
+                ["推定状態数", "推定状態数(単位)", "計測時間", "実行日時"],
+                [str(estimated_num), get_with_jp_unit(estimated_num), calc_time_str, now_str],
             ]
             writer.writerows(rows)
     
