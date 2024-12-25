@@ -148,7 +148,7 @@ def calc(generation: int, chunk_size: int) -> int:
 
 
                 # 追加する要素は tuple( comb, black_stone_num, ... ) など、元のコードに合わせる
-                chunk.append(comb)
+                chunk.append((comb, mask_of_stone_pos_with_center))
 
                 if len(chunk) == chunk_size:
                     # 1万件たまったらまとめて yield
@@ -255,14 +255,14 @@ def _calc_state_num_by_white_black_num(
       estimated_num_by_white_black_num: 石と白石の数が確定している状態での推定最大状態数
     """
     local_estimated_boards = set()
-    for stone_pos_without_center in stone_pos_without_centers:
+    for stone_pos_without_center, mask_of_stone_pos_with_center in stone_pos_without_centers:
         # stone_pos_with_center は「中心4マス(CENTER_POS)」を足した配置可能マス
         stone_pos_with_center = list(stone_pos_without_center) + CENTER_POS
 
-        # 1) stone_pos_with_center をビットマスク化
-        mask_of_stone_pos_with_center = 0
-        for pos in stone_pos_with_center:
-            mask_of_stone_pos_with_center |= (1 << pos)
+        # # 1) stone_pos_with_center をビットマスク化
+        # mask_of_stone_pos_with_center = 0
+        # for pos in stone_pos_with_center:
+        #     mask_of_stone_pos_with_center |= (1 << pos)
 
         # 黒石を置く組合せをループ
         for black_stone_pos in combinations(stone_pos_with_center, black_stone_num):
@@ -349,7 +349,7 @@ def _judge_alone_stone(board: int) -> bool:
 if __name__ == "__main__":
     # !!!適切な世代に修正!!!
     chunk_size = 10000  # 1万
-    for generation in [3]:
+    for generation in [4,5]:
 
         start_time = time.time()
         estimated_num = calc(generation, chunk_size)
