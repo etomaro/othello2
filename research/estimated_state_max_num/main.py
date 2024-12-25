@@ -58,7 +58,7 @@ patterns_select_stone_pos_by_r_int = {
 def worker_wrapper(args):
     return _calc_state_num_by_white_black_num(*args)
 
-def calc(generation: int) -> int:
+def calc(generation: int, chunk_size: int) -> int:
     """
     世代ごとの推定最大状態数を求める
     ※ 一旦可能な状態を保存しない。数だけ出力
@@ -106,6 +106,7 @@ def calc(generation: int) -> int:
     print(f"石の数: {stone_num}")
     print(f"黒または白石が置かれるマスの選択パターン数: {patterns_select_stone_pos_by_r[stone_num-4]}")
     print(f"stone_num_pattern: {stone_num_pattern}")
+    print(f"chunk_size: {chunk_size}")
     print("----------------------------")
 
     # ---3. 黒と白石の数が確定している状態でその推定状態数を算出---
@@ -120,8 +121,6 @@ def calc(generation: int) -> int:
     #     chunk_size = patterns_select_stone_pos_by_r_int[stone_num-4]//16
     # else:
     #     chunk_size = (patterns_select_stone_pos_by_r_int[stone_num-4]//16) + 1
-
-    chunk_size = 10000  # 1万
 
     # 黒石と白石の数のパターンでループ
     for stones_num in stone_num_pattern:
@@ -349,10 +348,11 @@ def _judge_alone_stone(board: int) -> bool:
 
 if __name__ == "__main__":
     # !!!適切な世代に修正!!!
+    chunk_size = 10000  # 1万
     for generation in [3]:
 
         start_time = time.time()
-        estimated_num = calc(generation)
+        estimated_num = calc(generation, chunk_size)
         print(f"世代: {generation}, 推定状態数: {estimated_num}")
 
         # CSV出力
@@ -367,8 +367,8 @@ if __name__ == "__main__":
         with open(file_path, "w") as f:
             writer = csv.writer(f)
             rows = [
-                ["推定状態数", "推定状態数(単位)", "計測時間", "実行日時"],
-                [str(estimated_num), get_with_jp_unit(estimated_num), calc_time_str, now_str],
+                ["推定状態数", "推定状態数(単位)", "計測時間", "実行日時", "chunk_size"],
+                [str(estimated_num), get_with_jp_unit(estimated_num), calc_time_str, now_str, str(chunk_size)],
             ]
             writer.writerows(rows)
     
