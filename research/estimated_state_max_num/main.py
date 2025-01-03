@@ -58,7 +58,7 @@ patterns_select_stone_pos_by_r_int = {
 def worker_wrapper(args):
     return _calc_state_num_by_white_black_num(*args)
 
-def calc(generation: int, chunk_size: int) -> int:
+def calc(generation: int, chunk_size: int, is_last_calc=True) -> int:
     """
     世代ごとの推定最大状態数を求める
     ※ 一旦可能な状態を保存しない。数だけ出力
@@ -83,9 +83,17 @@ def calc(generation: int, chunk_size: int) -> int:
       5. (3で求めたマス+中心の4マス)の中から黒石の数を元に黒石の置くマスのパターンをすべて列挙
          以下これを元にループ
       6. 黒石の置くマスと(黒石と白石の)置くマスが決まっているので白石の置くマスも自動的に決まる
-      
+
+    [ロジック3]
+    1. 黒と白のおける場所の組み合わせパターン」をすべて取得
+    2. 黒と白のそれぞれの石の数 * 1で求めたパターンごとに状態を作成
+       この際に重複は除外する
+
     args:
       generation: 世代(1-60)
+      is_last_calc: 
+        True: 最後まで計算
+        False: マスの組み合わせパターンのみ計算
     returns:
       estimated_state_num
     """
@@ -216,7 +224,7 @@ def _calc_state_num_by_white_black_num(
     ) -> set:
     """
     黒石と白石の数が確定している状態での推定最大状態数を求める
-
+    
     [計算上省くことができるパターン]
       1. 石の数
       2. 黒と白に同じマスに存在する場合
@@ -348,8 +356,8 @@ def _judge_alone_stone(board: int) -> bool:
 
 if __name__ == "__main__":
     # !!!適切な世代に修正!!!
-    chunk_size = 10000  # 1万
-    for generation in [4,5]:
+    chunk_size = 100000  # 10万
+    for generation in [7]:
 
         start_time = time.time()
         estimated_num = calc(generation, chunk_size)

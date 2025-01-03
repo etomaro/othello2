@@ -9,7 +9,6 @@ from common.n_C_r import json_utils
 from common.numerical_utils import get_powers_of_ten, get_with_jp_unit
 
 
-
 def calc(generation: int) -> int:
     """
     世代ごとの雑な推定最大状態数を求める
