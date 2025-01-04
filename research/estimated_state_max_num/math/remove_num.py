@@ -36,7 +36,7 @@ def main() -> None:
         rows = [header]
         for generation in range(1, 60+1):
             remove_num = calc(generation)
-            remove_num_str = str(remove_num) + "k"
+            remove_num_str = get_with_jp_unit(remove_num) + "k"
             rows.append([str(generation), remove_num_str])
         
         writer.writerows(rows)
