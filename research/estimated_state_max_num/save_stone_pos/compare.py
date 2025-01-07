@@ -94,10 +94,11 @@ def save_stone_pos_by_multiprocessing(generation: int) -> int:
     バッチごとにnpyファイルを作成する
     """
     start_time = time.time()
-    with tempfile.TemporaryDirectory() as tmpdir:
-        with multiprocessing.Pool() as pool:
-            # バッチごとに処理する
-            pool.imap(_wrapper_mult_fuc, _chunked_combinations(tmpdir))
+
+    base_folder = os.path.dirname(__file__) + "/" f"{generation}/2_npy"
+    with multiprocessing.Pool() as pool:
+        # バッチごとに処理する
+        pool.imap(_wrapper_mult_fuc, _chunked_combinations(base_folder))
     
     base_folder = os.path.dirname(__file__)
     file_name = "2_multi_process.csv"
@@ -225,7 +226,7 @@ def _judge_alone_stone(board: int) -> bool:
 
 if __name__ == "__main__":
     
-    for generation in range(5, 11):
+    for generation in range(1, 5):
         # debug用出力
         now_dt = datetime.now(tz=ZoneInfo("Asia/Tokyo"))
         now_str = f"{now_dt.year}/{now_dt.month}/{now_dt.day} {now_dt.hour}:{now_dt.minute}"
