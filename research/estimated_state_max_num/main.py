@@ -54,6 +54,7 @@ patterns_select_stone_pos_by_r_int = {
 }
 
 
+
 # multiprocessing 用: ワーカーでタプルを受け取り、本来の処理に回すラッパー関数
 def worker_wrapper(args):
     return _calc_state_num_by_white_black_num(*args)

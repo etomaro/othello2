@@ -18,6 +18,7 @@ from zoneinfo import ZoneInfo
 import multiprocessing
 import numpy as np
 import tempfile
+import multiprocessing
 
 from env_v2.common.symmetory import normalization
 from common.dt_utils import sec_to_str
@@ -39,10 +40,20 @@ NOT_CENTER_POS = [
 ]
 
 
-def _save_stone_pos(generation: int, save_dir: str) -> None:
+def save_stone_pos(generation: int) -> int:
     """
-    シングルプロセスで石を置く組み合わせをnpyファイルで保存する
+    1. シングルプロセスで石を置く組み合わせをnpyファイルで保存する
+
+    作成ファイル: 
+        1. 計測時間: 1_single_process.csv
+        2. npyファイル: 一時ディレクトリ
+
+    returns:
+      calc_time: 計測時間
+      file_path: 計測時間のファイルパス
     """
+    start_time = time.time()
+
     stone_pos_list = []
     for stone_pos in combinations(NOT_CENTER_POS, generation):
 
@@ -61,15 +72,39 @@ def _save_stone_pos(generation: int, save_dir: str) -> None:
     stone_pos_ndarray = np.array(stone_pos_list)
 
     # save
-    file_path = save_dir + "/" + "single_process.npy"
-    np.save(file_path, stone_pos_ndarray)
+    file_name = "1_single_process.npy"
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # 一時ディレクトリ
+        file_path = tmpdir + "/" + file_name
+        np.save(file_path, stone_pos_ndarray)
+    
+    base_folder = os.path.dirname(__file__)
+    file_name = "1_single_process.csv"
+    file_path = base_folder + f"/{generation}/" + file_name
+    
+    return time.time() - start_time, file_path
 
 
-def _save_stone_pos_by_multiprocessing(generation: int, save_dir: str) -> None:
-    """
-    マルチプロセス(multiprocessing)で石を置く組み合わせをnpyファイルで保存する
-    """
-    pass
+# def _save_stone_pos_by_multiprocessing(generation: int, save_dir: str) -> None:
+#     """
+#     2. マルチプロセス(multiprocessing)で石を置く組み合わせをnpyファイルで保存する
+#     """
+#     chunk_list = []
+#     for stone_pos in combinations(NOT_CENTER_POS, generation):
+
+#     with multiprocessing.Pool() as pool:
+#         results = pool.imap(
+            
+#         )
+
+# def _multi_func():
+#     pass
+# def _get_yield_array(chunk_size=10000):
+#     i = 0
+#     results = []
+#     for comb in combinations(NOTE_CE)
+    
+    
 
 def _save_stone_pos_by_njit(generation: int, is_parallel: bool, save_dir: str) -> None:
     """
@@ -142,7 +177,13 @@ def _judge_alone_stone(board: int) -> bool:
     return False
 
 if __name__ == "__main__":
-    # 一時ディレクトリを作成
-    with tempfile.TemporaryDirectory() as tmpdir:
-        # シングルプロセス
-        _save_stone_pos(2, tmpdir)
+    generation = 2
+
+    # exec
+    calc_time, file_path = save_stone_pos(generation)  # # シングルプロセス
+
+    # 計測結果
+    calc_time = sec_to_str(calc_time)
+    with open(file_path, "w") as f:
+        writer = csv.writer(f)
+        writer.writerows([["計測結果"], [calc_time]])
