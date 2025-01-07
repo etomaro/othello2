@@ -10,13 +10,13 @@ def sec_to_str(calc_time: int) -> str:
         # 1時間以上の場合
         hour = calc_time // hour_slot
         calc_time -= hour * hour_slot
-        calc_time_str += f"{hour}h"
+        calc_time_str += f"{int(hour)}h"
     if (calc_time // minute_slot) >= 1:
         # 1分以上の場合
         minute = calc_time // minute_slot 
         calc_time -= minute * minute_slot 
-        calc_time_str += f"{minute}m"
+        calc_time_str += f"{int(minute)}m"
     # 秒の追加
-    calc_time_str += f"{calc_time}s"
+    calc_time_str += f"{int(calc_time)}s"
 
     return calc_time_str
