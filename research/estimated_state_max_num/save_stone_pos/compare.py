@@ -177,13 +177,22 @@ def _judge_alone_stone(board: int) -> bool:
     return False
 
 if __name__ == "__main__":
-    generation = 2
+    
+    for generation in range(5, 11):
+        # debug用出力
+        now_dt = datetime.now(tz=ZoneInfo("Asia/Tokyo"))
+        now_str = f"{now_dt.year}/{now_dt.month}/{now_dt.day} {now_dt.hour}:{now_dt.minute}"
+        print(f"世代={generation} start. {now_str}")
+        
+        # exec
+        calc_time, file_path = save_stone_pos(generation)  # # シングルプロセス
 
-    # exec
-    calc_time, file_path = save_stone_pos(generation)  # # シングルプロセス
+        # 計測結果
+        calc_time = sec_to_str(calc_time)
+        now_dt = datetime.now(tz=ZoneInfo("Asia/Tokyo"))
+        now_str = f"{now_dt.year}/{now_dt.month}/{now_dt.day} {now_dt.hour}:{now_dt.minute}"
 
-    # 計測結果
-    calc_time = sec_to_str(calc_time)
-    with open(file_path, "w") as f:
-        writer = csv.writer(f)
-        writer.writerows([["計測結果"], [calc_time]])
+        with open(file_path, "w") as f:
+            f.seek(0)
+            writer = csv.writer(f)
+            writer.writerows([["計測結果", "実行日時"], [calc_time, now_str]])
