@@ -98,7 +98,7 @@ def save_stone_pos_by_multiprocessing(generation: int) -> int:
     base_folder = os.path.dirname(__file__) + "/" f"{generation}/2_npy"
     with multiprocessing.Pool() as pool:
         # バッチごとに処理する
-        pool.imap(_wrapper_mult_fuc, _chunked_combinations(base_folder))
+        pool.map(_wrapper_mult_fuc, _chunked_combinations(base_folder))
     
     base_folder = os.path.dirname(__file__)
     file_name = "2_multi_process.csv"
