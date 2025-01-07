@@ -10,6 +10,7 @@
 
 """
 from itertools import combinations
+import itertools
 import csv
 import time
 import os
@@ -39,7 +40,7 @@ NOT_CENTER_POS = [
     56, 57, 58, 59, 60, 61, 62, 63
 ]
 
-
+# ------------------------1. シングルプロセス------------------------
 def save_stone_pos(generation: int) -> int:
     """
     1. シングルプロセスで石を置く組み合わせをnpyファイルで保存する
@@ -54,7 +55,7 @@ def save_stone_pos(generation: int) -> int:
     """
     start_time = time.time()
 
-    stone_pos_list = []
+    result = []
     for stone_pos in combinations(NOT_CENTER_POS, generation):
 
         # stone_pos_with_center は「中心4マス(CENTER_POS)」を足した配置可能マス
@@ -67,16 +68,16 @@ def save_stone_pos(generation: int) -> int:
         if _judge_alone_stone(mask_of_stone_pos_with_center):
             continue
 
-        stone_pos_list.append(stone_pos_with_center)
+        result.append(stone_pos_with_center)
     
-    stone_pos_ndarray = np.array(stone_pos_list)
+    result_ndarray = np.array(result)
 
     # save
     file_name = "1_single_process.npy"
     with tempfile.TemporaryDirectory() as tmpdir:
         # 一時ディレクトリ
         file_path = tmpdir + "/" + file_name
-        np.save(file_path, stone_pos_ndarray)
+        np.save(file_path, result_ndarray)
     
     base_folder = os.path.dirname(__file__)
     file_name = "1_single_process.csv"
@@ -85,27 +86,73 @@ def save_stone_pos(generation: int) -> int:
     return time.time() - start_time, file_path
 
 
-# def _save_stone_pos_by_multiprocessing(generation: int, save_dir: str) -> None:
-#     """
-#     2. マルチプロセス(multiprocessing)で石を置く組み合わせをnpyファイルで保存する
-#     """
-#     chunk_list = []
-#     for stone_pos in combinations(NOT_CENTER_POS, generation):
-
-#     with multiprocessing.Pool() as pool:
-#         results = pool.imap(
-            
-#         )
-
-# def _multi_func():
-#     pass
-# def _get_yield_array(chunk_size=10000):
-#     i = 0
-#     results = []
-#     for comb in combinations(NOTE_CE)
+# ------------------------2. マルチプロセス(multiprocessing)------------------------    
+def save_stone_pos_by_multiprocessing(generation: int) -> int:
+    """
+    2. マルチプロセス(multiprocessing)で石を置く組み合わせをnpyファイルで保存する
     
+    バッチごとにnpyファイルを作成する
+    """
+    start_time = time.time()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        with multiprocessing.Pool() as pool:
+            # バッチごとに処理する
+            pool.imap(_wrapper_mult_fuc, _chunked_combinations(tmpdir))
     
+    base_folder = os.path.dirname(__file__)
+    file_name = "2_multi_process.csv"
+    file_path = base_folder + f"/{generation}/" + file_name
+    
+    return time.time() - start_time, file_path
 
+def _chunked_combinations(save_dir: str, batch_size=10000000):
+    """
+    バッチごとにyieldする
+
+    args
+      batch_size: デフォルト1000万
+    """
+    combo_iter = itertools.combinations(NOT_CENTER_POS, generation)
+    idx = 0
+    while True:
+        # isliceでcombo_iterからbatch_size分だけ取り出し
+        chunk = list(itertools.islice(combo_iter, batch_size))
+        save_path = save_dir + "/" + f"{idx}"
+        if not chunk:
+            break
+        yield chunk, save_path
+
+        idx += 1
+
+def _multi_fnc(stone_pos_list: list, save_path: str):
+    """
+    並列用関数
+    1. 配置可能マス取得
+    2. ビットマスク化
+    3. 孤立石除外
+    4. npyファイル作成
+    """
+    result = []
+    for stone_pos in stone_pos_list:
+        # stone_pos_with_center は「中心4マス(CENTER_POS)」を足した配置可能マス
+        stone_pos_with_center = list(stone_pos) + CENTER_POS
+        # 1) stone_pos_with_center をビットマスク化
+        mask_of_stone_pos_with_center = 0
+        for pos in stone_pos_with_center:
+            mask_of_stone_pos_with_center |= (1 << pos)
+        
+        if _judge_alone_stone(mask_of_stone_pos_with_center):
+            continue
+
+        result.append(stone_pos_with_center)
+    
+    result_ndarray = np.array(result)
+    np.save(save_path, result_ndarray) 
+
+def _wrapper_mult_fuc(args):
+    _multi_fnc(*args)
+
+# -----------------3. njit------------------
 def _save_stone_pos_by_njit(generation: int, is_parallel: bool, save_dir: str) -> None:
     """
     njitで石を置く組み合わせをnpyファイルで保存する
@@ -185,7 +232,7 @@ if __name__ == "__main__":
         print(f"世代={generation} start. {now_str}")
         
         # exec
-        calc_time, file_path = save_stone_pos(generation)  # # シングルプロセス
+        calc_time, file_path = save_stone_pos_by_multiprocessing(generation)  # 2. マルチプロセス
 
         # 計測結果
         calc_time = sec_to_str(calc_time)
