@@ -124,7 +124,10 @@ def save_stone_pos_by_multiprocessing(generation: int) -> int:
 
     # {generation}_npyフォルダ配下のファイルをすべて削除する
     base_folder = os.path.dirname(__file__) + "/" f"{generation}/2_npy"
-    shutil.rmtree(base_folder)
+    if os.path.isdir(base_folder):
+        shutil.rmtree(base_folder)
+    else:
+        os.makedirs(base_folder)
 
     core_num = multiprocessing.cpu_count()  # コア数
 
@@ -138,7 +141,7 @@ def save_stone_pos_by_multiprocessing(generation: int) -> int:
     end_idx = work_num_by_worker
     for i in range(core_num):
         # iをworker_idとする
-        save_folder = base_folder + "/" + {str(i)} + "/"
+        save_folder = base_folder + "/" + f"{str(i)}" + "/"
         args.append((generation, save_folder, start_idx, end_idx))
         start_idx = end_idx 
         end_idx += work_num_by_worker
@@ -147,9 +150,9 @@ def save_stone_pos_by_multiprocessing(generation: int) -> int:
         # バッチごとに処理する
         # workerに渡す配列が大きすぎるため(copyが起きる)OOMが発生しやすくなる
         # 生成をworkerで行うようにしてOOMを避ける
-        pattern_numx = pool.map(_wrapper_process_by_worker, args)
-    
-    pattern_num = sum(pattern_numx)
+        pattern_nums = pool.map(_wrapper_process_by_worker, args)
+
+    pattern_num = sum(pattern_nums)
 
     base_folder = os.path.dirname(__file__)
     file_name = "2_multi_process.csv"
@@ -200,7 +203,8 @@ def _process_by_worker(generation: int, save_folder: str, start_idx: int, end_id
 
     # batch_numごとに引数で指定された範囲を処理する
     proc_id = 0
-    for _start_idx, _end_idx in range(start_idx, end_idx+1, batch_num):
+    for _start_idx in range(start_idx, end_idx+1, batch_num):
+        _end_idx = _start_idx + batch_num
         # 処理する選択可能マスのパターンを取得する
         stone_pos_list = _get_pos_by_range(generation, _start_idx, _end_idx)
 
@@ -222,6 +226,7 @@ def _process_by_worker(generation: int, save_folder: str, start_idx: int, end_id
         
         # 状態を保存する 
         file_path = save_folder + f"{proc_id}.npy"
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)  # ディレクトリが存在している場合もエラーが出ないようにディレクトリを作成
         estimated_boards_ndarray = np.array(estimated_boards)
         np.save(file_path, estimated_boards_ndarray)
 
@@ -232,8 +237,10 @@ def _process_by_worker(generation: int, save_folder: str, start_idx: int, end_id
     
     return pattern_num_by_worker
 
-def _wrapper_process_by_worker(args):
-    _process_by_worker(*args)
+def _wrapper_process_by_worker(args) -> int:
+    pattern_num_by_worker = _process_by_worker(*args)
+
+    return pattern_num_by_worker
 
 # -----------------3. njit------------------
 def _save_stone_pos_by_njit(generation: int, is_parallel: bool, save_dir: str) -> None:
