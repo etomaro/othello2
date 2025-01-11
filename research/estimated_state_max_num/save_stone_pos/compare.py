@@ -154,11 +154,6 @@ def save_stone_pos_by_multiprocessing(generation: int) -> int:
         start_idx = end_idx 
         end_idx += work_num_by_worker
     
-    print(f"pos_total_num={pos_total_num}")
-    print(f"work_num_by_worker={work_num_by_worker}")
-    for i in args:
-        print(f"start_idx: {i[2]}. end_idx: {i[3]}")
-    
     with multiprocessing.Pool(core_num) as pool:
         # バッチごとに処理する
         # workerに渡す配列が大きすぎるため(copyが起きる)OOMが発生しやすくなる
@@ -331,7 +326,7 @@ def _judge_alone_stone(board: int) -> bool:
 
 if __name__ == "__main__":
     
-    for generation in range(1, 2):
+    for generation in range(1, 5):
         # debug用出力
         now_dt = datetime.now(tz=ZoneInfo("Asia/Tokyo"))
         now_str = f"{now_dt.year}/{now_dt.month}/{now_dt.day} {now_dt.hour}:{now_dt.minute}"
