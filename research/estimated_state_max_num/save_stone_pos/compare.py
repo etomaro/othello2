@@ -57,6 +57,13 @@ def save_stone_pos(generation: int) -> int:
     """
     start_time = time.time()
 
+    # {generation}_npyフォルダ配下のファイルをすべて削除する
+    base_folder = os.path.dirname(__file__) + "/" f"{generation}/1_npy"
+    if os.path.isdir(base_folder):
+        shutil.rmtree(base_folder)
+    else:
+        os.makedirs(base_folder)
+
     result = []
     for stone_pos in combinations(NOT_CENTER_POS, generation):
 
@@ -73,6 +80,7 @@ def save_stone_pos(generation: int) -> int:
         result.append(stone_pos_with_center)
     
     result_ndarray = np.array(result)
+    pattern_num = len(result)
 
     # save
     file_name = "1_single_process.npy"
@@ -85,7 +93,7 @@ def save_stone_pos(generation: int) -> int:
     file_name = "1_single_process.csv"
     file_path = base_folder + f"/{generation}/" + file_name
     
-    return time.time() - start_time, file_path
+    return time.time() - start_time, file_path, pattern_num
 
 
 # ------------------------2. マルチプロセス(multiprocessing)------------------------    
