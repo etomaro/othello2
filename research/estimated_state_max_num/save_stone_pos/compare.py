@@ -326,15 +326,15 @@ def _judge_alone_stone(board: int) -> bool:
 
 if __name__ == "__main__":
     
-    for generation in range(2, 7):
+    for generation in range(1, 7):
         # debug用出力
         now_dt = datetime.now(tz=ZoneInfo("Asia/Tokyo"))
         now_str = f"{now_dt.year}/{now_dt.month}/{now_dt.day} {now_dt.hour}:{now_dt.minute}"
         print(f"世代={generation} start. {now_str}")
         
         # exec
-        calc_time, file_path, pattern_num = save_stone_pos(generation)  # 1. シングルプロセス
-        # calc_time, file_path, pattern_num = save_stone_pos_by_multiprocessing(generation)  # 2. マルチプロセス
+        # calc_time, file_path, pattern_num = save_stone_pos(generation)  # 1. シングルプロセス
+        calc_time, file_path, pattern_num = save_stone_pos_by_multiprocessing(generation)  # 2. マルチプロセス
 
         pos_total_num = read_json_n_c_r(60)[str(generation)]  # 60Cgenerationの件数を取得する
         remove_num = pos_total_num - pattern_num  # 除外数
