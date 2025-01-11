@@ -326,15 +326,15 @@ def _judge_alone_stone(board: int) -> bool:
 
 if __name__ == "__main__":
     
-    for generation in range(1, 5):
+    for generation in range(5, 7):
         # debug用出力
         now_dt = datetime.now(tz=ZoneInfo("Asia/Tokyo"))
         now_str = f"{now_dt.year}/{now_dt.month}/{now_dt.day} {now_dt.hour}:{now_dt.minute}"
         print(f"世代={generation} start. {now_str}")
         
         # exec
-        # calc_time, file_path, pattern_num = save_stone_pos(generation)  # 1. シングルプロセス
-        calc_time, file_path, pattern_num = save_stone_pos_by_multiprocessing(generation)  # 2. マルチプロセス
+        calc_time, file_path, pattern_num = save_stone_pos(generation)  # 1. シングルプロセス
+        # calc_time, file_path, pattern_num = save_stone_pos_by_multiprocessing(generation)  # 2. マルチプロセス
 
         # 計測結果
         calc_time = sec_to_str(calc_time)
