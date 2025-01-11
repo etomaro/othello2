@@ -326,7 +326,7 @@ def _judge_alone_stone(board: int) -> bool:
 
 if __name__ == "__main__":
     
-    for generation in range(5, 7):
+    for generation in range(1, 2):
         # debug用出力
         now_dt = datetime.now(tz=ZoneInfo("Asia/Tokyo"))
         now_str = f"{now_dt.year}/{now_dt.month}/{now_dt.day} {now_dt.hour}:{now_dt.minute}"
@@ -336,6 +336,9 @@ if __name__ == "__main__":
         calc_time, file_path, pattern_num = save_stone_pos(generation)  # 1. シングルプロセス
         # calc_time, file_path, pattern_num = save_stone_pos_by_multiprocessing(generation)  # 2. マルチプロセス
 
+        pos_total_num = read_json_n_c_r(60)[str(generation)]  # 60Cgenerationの件数を取得する
+        remove_num = pos_total_num - pattern_num  # 除外数
+
         # 計測結果
         calc_time = sec_to_str(calc_time)
         now_dt = datetime.now(tz=ZoneInfo("Asia/Tokyo"))
@@ -344,4 +347,9 @@ if __name__ == "__main__":
         with open(file_path, "w") as f:
             f.seek(0)
             writer = csv.writer(f)
-            writer.writerows([["計測結果", "パターン数", "実行日時"], [calc_time, pattern_num, now_str]])
+            writer.writerows(
+                [
+                    ["計測結果", "パターン数", "60Cgeneration", "除外数", "実行日時"], 
+                    [calc_time, get_with_jp_unit(pattern_num), get_with_jp_unit(pos_total_num), get_with_jp_unit(remove_num), now_str]
+                ]
+            )
