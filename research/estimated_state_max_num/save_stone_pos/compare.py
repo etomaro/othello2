@@ -154,6 +154,11 @@ def save_stone_pos_by_multiprocessing(generation: int) -> int:
         start_idx = end_idx 
         end_idx += work_num_by_worker
     
+    print(f"pos_total_num={pos_total_num}")
+    print(f"work_num_by_worker={work_num_by_worker}")
+    for i in args:
+        print(f"start_idx: {i[2]}. end_idx: {i[3]}")
+    
     with multiprocessing.Pool(core_num) as pool:
         # バッチごとに処理する
         # workerに渡す配列が大きすぎるため(copyが起きる)OOMが発生しやすくなる
@@ -186,7 +191,7 @@ def _get_pos_by_range(generation: int, start_idx: int, end_idx: int):
         56, 57, 58, 59, 60, 61, 62, 63
     ]
     all_combos = itertools.combinations(not_center_pos, generation)
-    return list(itertools.islice(all_combos, start_idx, end_idx+1))
+    return list(itertools.islice(all_combos, start_idx, end_idx))
 
 def _process_by_worker(generation: int, save_folder: str, start_idx: int, end_idx: int) -> int:
     """
@@ -211,8 +216,11 @@ def _process_by_worker(generation: int, save_folder: str, start_idx: int, end_id
 
     # batch_numごとに引数で指定された範囲を処理する
     proc_id = 0
-    for _start_idx in range(start_idx, end_idx+1, batch_num):
-        _end_idx = _start_idx + batch_num
+    for _start_idx in range(start_idx, end_idx, batch_num):
+        if (_start_idx + batch_num) > end_idx:
+            _end_idx = end_idx
+        else:
+            _end_idx = _start_idx + batch_num
         # 処理する選択可能マスのパターンを取得する
         stone_pos_list = _get_pos_by_range(generation, _start_idx, _end_idx)
 
@@ -323,13 +331,14 @@ def _judge_alone_stone(board: int) -> bool:
 
 if __name__ == "__main__":
     
-    for generation in range(1,5):
+    for generation in range(1, 2):
         # debug用出力
         now_dt = datetime.now(tz=ZoneInfo("Asia/Tokyo"))
         now_str = f"{now_dt.year}/{now_dt.month}/{now_dt.day} {now_dt.hour}:{now_dt.minute}"
         print(f"世代={generation} start. {now_str}")
         
         # exec
+        # calc_time, file_path, pattern_num = save_stone_pos(generation)  # 1. シングルプロセス
         calc_time, file_path, pattern_num = save_stone_pos_by_multiprocessing(generation)  # 2. マルチプロセス
 
         # 計測結果
