@@ -12,3 +12,18 @@
       memory/report/variables/memory_{ele_num_max}_{step}.png
     3. [png]実際の情報量とメモリ使用量の差分
       memory/report/variables/diff_{ele_num_max}_{step}.png
+
+・調査内容
+  ・a = list(range(800000000))  # 8億のリスト
+    -> 32GBメモリ、6GBのスワップ
+
+    ※ range(n)は遅延型なのでこの時点ではメモリが使用されない。listに変換した際に実際の値が生成される
+
+  ・a = [0xffffffffffffffff] * 4000000000  # 40億のリスト
+    -> 32GBメモリ、2GBのスワップ
+
+    multiprocessをする場合の検討
+    40億を1/4をつまり75%をMax使用できるとして
+    np.array()でほぼ倍になるため半分の20億
+    ボードの状態は２つ保持するため半分の10億の状態
+    multiprocessing.cpu_count()=16のため16個の並列処理が動かせる。そのため1podあたり6250万個
