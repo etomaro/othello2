@@ -63,7 +63,7 @@ def save_stone_pos(generation: int) -> int:
         shutil.rmtree(base_folder)
     else:
         os.makedirs(base_folder)
-
+        
     result = []
     for stone_pos in combinations(NOT_CENTER_POS, generation):
 
@@ -84,10 +84,9 @@ def save_stone_pos(generation: int) -> int:
 
     # save
     file_name = "1_single_process.npy"
-    with tempfile.TemporaryDirectory() as tmpdir:
-        # 一時ディレクトリ
-        file_path = tmpdir + "/" + file_name
-        np.save(file_path, result_ndarray)
+    file_path = base_folder + "/" + file_name
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)  # ディレクトリが存在している場合もエラーが出ないようにディレクトリを作成
+    np.save(file_path, result_ndarray)
     
     base_folder = os.path.dirname(__file__)
     file_name = "1_single_process.csv"
@@ -206,8 +205,18 @@ def _process_by_worker(generation: int, save_folder: str, start_idx: int, end_id
     """
     pattern_num_by_worker = 0
 
-    # OOMを気にしながら状態保存をする単位
-    batch_num = 62500000  # 6250万
+    """
+    OOMを気にしながら状態保存をする単位 検討
+
+    ※ 世代ごとにマスの選択の個数が1つづ大きくなるため世代ごとに値を指定する必要がある
+
+    [世代=7]
+    6250万: OOM発生
+    2000万(メモリ: 32GB, スワップ: 4.4GB使用): 6分16秒
+    1500万(メモリ: 27GB, スワップ803MB使用): 5分47秒
+      -> スワップを使用しない場合のほうが早いしメモリのバッファを確保できるためメモリの高使用率を目指す
+    """
+    batch_num = 20000000  # 2000万(メモリ: 32GB, スワップ: 4.4GB使用)  ※なぜか6250万ではOOM発生
 
     # batch_numごとに引数で指定された範囲を処理する
     proc_id = 0
@@ -326,15 +335,15 @@ def _judge_alone_stone(board: int) -> bool:
 
 if __name__ == "__main__":
     
-    for generation in range(1, 7):
+    for generation in range(1,7):
         # debug用出力
         now_dt = datetime.now(tz=ZoneInfo("Asia/Tokyo"))
         now_str = f"{now_dt.year}/{now_dt.month}/{now_dt.day} {now_dt.hour}:{now_dt.minute}"
         print(f"世代={generation} start. {now_str}")
         
         # exec
-        # calc_time, file_path, pattern_num = save_stone_pos(generation)  # 1. シングルプロセス
-        calc_time, file_path, pattern_num = save_stone_pos_by_multiprocessing(generation)  # 2. マルチプロセス
+        calc_time, file_path, pattern_num = save_stone_pos(generation)  # 1. シングルプロセス
+        # calc_time, file_path, pattern_num = save_stone_pos_by_multiprocessing(generation)  # 2. マルチプロセス
 
         pos_total_num = read_json_n_c_r(60)[str(generation)]  # 60Cgenerationの件数を取得する
         remove_num = pos_total_num - pattern_num  # 除外数
