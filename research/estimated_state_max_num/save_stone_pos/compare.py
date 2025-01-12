@@ -152,7 +152,7 @@ def save_stone_pos_by_multiprocessing(generation: int) -> int:
     for i in range(core_num):
         # iをworker_idとする
         save_folder = base_folder + "/" + f"{str(i)}" + "/"
-        args.append((generation, save_folder, start_idx, end_idx))
+        args.append((generation, i, save_folder, start_idx, end_idx))
         start_idx = end_idx 
         end_idx += work_num_by_worker
     
@@ -190,7 +190,7 @@ def _get_pos_by_range(generation: int, start_idx: int, end_idx: int):
     all_combos = itertools.combinations(not_center_pos, generation)
     return list(itertools.islice(all_combos, start_idx, end_idx))
 
-def _process_by_worker(generation: int, save_folder: str, start_idx: int, end_idx: int) -> int:
+def _process_by_worker(generation: int, worker_id: int, save_folder: str, start_idx: int, end_idx: int) -> int:
     """
     worker当たりのタスク
     1. 配置可能マス取得
@@ -280,25 +280,41 @@ def _process_by_worker(generation: int, save_folder: str, start_idx: int, end_id
     90%使用を目指すとして 25.2GB使用可能
     16workerのため1worker当たり1.5GB使用可能
     ndarrayで倍に増えるため情報の保存は0.75GB
-    0.75GB = 750MB = 750000Byte使用可能
+    0.75GB = 750MB = 750000KB = 750000000Byte使用可能
+
+    __sizeof__が800000040Bでメモリ監視アプリでは約5GB増えた
+    5GB*16=80GBのため指定しているメモリ最大量は805306368は論外か
+     -> __sizeof__で使用しているメモリ量はシステム上で使用しているメモリ量を完全に含んでいない
+
+    28GB使用可能で
+    25.2GBで
+    1workerで1.5GBで
     """
     estimated_boards = []
-    max_memory_bytes = 805306368
+    max_memory_bytes = 272000040  # システム上1.3GB使用の可能性あり
     proc_id = 0
+    total_calc_num = end_idx - start_idx
+    calc_done_num = 0
     for stone_pos in itertools.islice(itertools.combinations((NOT_CENTER_POS), generation), start_idx, end_idx):
         stone_pos_with_center = list(stone_pos) + CENTER_POS
         # 1) stone_pos_with_center をビットマスク化
         mask_of_stone_pos_with_center = 0
         for pos in stone_pos_with_center:
             mask_of_stone_pos_with_center |= (1 << pos)
-        
+  
         if _judge_alone_stone(mask_of_stone_pos_with_center):
             continue
 
         estimated_boards.append(stone_pos_with_center)
 
+        calc_done_num += 1
+
         if max_memory_bytes <= estimated_boards.__sizeof__():
-            # 状態を保存する 
+            # 状態を保存する
+            now_dt = datetime.now(tz=ZoneInfo("Asia/Tokyo"))
+            now_str = f"{now_dt.year}/{now_dt.month}/{now_dt.day} {now_dt.hour}:{now_dt.minute}"
+            print(f"[woker_id={worker_id}]save npy file start. dt={now_str}")
+
             file_path = save_folder + f"{proc_id}.npy"
             os.makedirs(os.path.dirname(file_path), exist_ok=True)  # ディレクトリが存在している場合もエラーが出ないようにディレクトリを作成
             estimated_boards_ndarray = np.array(estimated_boards)
@@ -309,8 +325,17 @@ def _process_by_worker(generation: int, save_folder: str, start_idx: int, end_id
             np.save(file_path, estimated_boards_ndarray)
             del estimated_boards_ndarray
             proc_id += 1
+
+            now_dt = datetime.now(tz=ZoneInfo("Asia/Tokyo"))
+            now_str = f"{now_dt.year}/{now_dt.month}/{now_dt.day} {now_dt.hour}:{now_dt.minute}"
+            print(f"[worker_id={worker_id}]save npy file end. dt={now_str}")
+            print(f"[worker_id={worker_id}]{(calc_done_num/total_calc_num)*100}% calc done")
     
     # 状態を保存する 
+    now_dt = datetime.now(tz=ZoneInfo("Asia/Tokyo"))
+    now_str = f"{now_dt.year}/{now_dt.month}/{now_dt.day} {now_dt.hour}:{now_dt.minute}"
+    print(f"[worker_id={worker_id}]save npy file start. dt={now_str}")
+
     file_path = save_folder + f"{proc_id}.npy"
     os.makedirs(os.path.dirname(file_path), exist_ok=True)  # ディレクトリが存在している場合もエラーが出ないようにディレクトリを作成
     estimated_boards_ndarray = np.array(estimated_boards)
@@ -318,6 +343,11 @@ def _process_by_worker(generation: int, save_folder: str, start_idx: int, end_id
     del estimated_boards
     np.save(file_path, estimated_boards_ndarray)
     del estimated_boards_ndarray
+
+    now_dt = datetime.now(tz=ZoneInfo("Asia/Tokyo"))
+    now_str = f"{now_dt.year}/{now_dt.month}/{now_dt.day} {now_dt.hour}:{now_dt.minute}"
+    print(f"[worker_id={worker_id}]save npy file end. dt={now_str}")
+    print(f"[worker_id={worker_id}]calc done.")
 
     return pattern_num_by_worker
 
@@ -399,7 +429,7 @@ def _judge_alone_stone(board: int) -> bool:
 
 if __name__ == "__main__":
     
-    for generation in range(7,8):
+    for generation in range(8, 20):
         # debug用出力
         now_dt = datetime.now(tz=ZoneInfo("Asia/Tokyo"))
         now_str = f"{now_dt.year}/{now_dt.month}/{now_dt.day} {now_dt.hour}:{now_dt.minute}"
