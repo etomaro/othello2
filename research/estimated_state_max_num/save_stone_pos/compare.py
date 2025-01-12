@@ -112,7 +112,8 @@ def save_stone_pos_by_multiprocessing(generation: int) -> int:
     [各worker]
     1. 60Cgenerationの遅延リストを作成する
     2. workerに指定された範囲の「1」の範囲をiterateする
-    3. 各workerが保持できる最大数を超えた場合npyファイルとして保存する
+    3. 
+      方法1. 各workerが保持できる最大数を超えた場合npyファイルとして保存する
        「各workerが保持できる最大数の求め方」
          ・a = [0xffffffffffffffff] * 4000000000  # 40億のリスト
             -> 32GBメモリ、2GBのスワップ
@@ -126,6 +127,8 @@ def save_stone_pos_by_multiprocessing(generation: int) -> int:
         保存path
           各workerのprocess_idをフォルダベースとしてworker内の処理単位ごとにファイルを作成する
           base_folder/{generation}/2_npy/{worker_id}/{proc_id}.npy
+      方法2. 各workerが保持できる最大メモリを超えた場合npyフィあるとして保存する
+        「各workerが保持できる最大メモリの求め方」
     """
     start_time = time.time()
 
@@ -207,53 +210,100 @@ def _process_by_worker(generation: int, save_folder: str, start_idx: int, end_id
 
     """
     OOMを気にしながら状態保存をする単位 検討
+    
+    方法1: 特定のバッチ単位でroopして処理する。特定のバッチ単位でnpy保存
+        ※ 世代ごとにマスの選択の個数が1つづ大きくなるため世代ごとに値を指定する必要がある
+    方法2: 1個ずつiterateで作成してroopする。指定したメモリ量を超えるとnpy保存
 
-    ※ 世代ごとにマスの選択の個数が1つづ大きくなるため世代ごとに値を指定する必要がある
+    [方法1]
+        [世代=7]
+        6250万: OOM発生
+        2000万(メモリ: 32GB, スワップ: 4.4GB使用): 6分16秒
+        1500万(メモリ: 27GB, スワップ803MB使用): 5分47秒
+        -> スワップを使用しない場合のほうが早いしメモリのバッファを確保できるためメモリの高使用率を目指す
 
-    [世代=7]
-    6250万: OOM発生
-    2000万(メモリ: 32GB, スワップ: 4.4GB使用): 6分16秒
-    1500万(メモリ: 27GB, スワップ803MB使用): 5分47秒
-      -> スワップを使用しない場合のほうが早いしメモリのバッファを確保できるためメモリの高使用率を目指す
+        [世代=8]
+        1000万: OOM発生
+    [方法2]
     """
-    batch_num = 20000000  # 2000万(メモリ: 32GB, スワップ: 4.4GB使用)  ※なぜか6250万ではOOM発生
+    # ---------方法1---------
+    # batch_num = 20000000  # 2000万(メモリ: 32GB, スワップ: 4.4GB使用)  ※なぜか6250万ではOOM発生
 
-    # batch_numごとに引数で指定された範囲を処理する
-    proc_id = 0
-    for _start_idx in range(start_idx, end_idx, batch_num):
-        if (_start_idx + batch_num) > end_idx:
-            _end_idx = end_idx
-        else:
-            _end_idx = _start_idx + batch_num
-        # 処理する選択可能マスのパターンを取得する
-        stone_pos_list = _get_pos_by_range(generation, _start_idx, _end_idx)
+    # # batch_numごとに引数で指定された範囲を処理する
+    # proc_id = 0
+    # for _start_idx in range(start_idx, end_idx, batch_num):
+    #     if (_start_idx + batch_num) > end_idx:
+    #         _end_idx = end_idx
+    #     else:
+    #         _end_idx = _start_idx + batch_num
+    #     # 処理する選択可能マスのパターンを取得する
+    #     stone_pos_list = _get_pos_by_range(generation, _start_idx, _end_idx)
 
-        estimated_boards = []
-        for stone_pos in stone_pos_list:
-            # stone_pos_with_center は「中心4マス(CENTER_POS)」を足した配置可能マス
-            stone_pos_with_center = list(stone_pos) + CENTER_POS
-            # 1) stone_pos_with_center をビットマスク化
-            mask_of_stone_pos_with_center = 0
-            for pos in stone_pos_with_center:
-                mask_of_stone_pos_with_center |= (1 << pos)
+    #     estimated_boards = []
+    #     for stone_pos in stone_pos_list:
+    #         # stone_pos_with_center は「中心4マス(CENTER_POS)」を足した配置可能マス
+    #         stone_pos_with_center = list(stone_pos) + CENTER_POS
+    #         # 1) stone_pos_with_center をビットマスク化
+    #         mask_of_stone_pos_with_center = 0
+    #         for pos in stone_pos_with_center:
+    #             mask_of_stone_pos_with_center |= (1 << pos)
             
-            if _judge_alone_stone(mask_of_stone_pos_with_center):
-                continue
+    #         if _judge_alone_stone(mask_of_stone_pos_with_center):
+    #             continue
 
-            estimated_boards.append(stone_pos_with_center)
+    #         estimated_boards.append(stone_pos_with_center)
         
-        del stone_pos_list
+    #     del stone_pos_list
         
-        # 状態を保存する 
-        file_path = save_folder + f"{proc_id}.npy"
-        os.makedirs(os.path.dirname(file_path), exist_ok=True)  # ディレクトリが存在している場合もエラーが出ないようにディレクトリを作成
-        estimated_boards_ndarray = np.array(estimated_boards)
-        np.save(file_path, estimated_boards_ndarray)
+    #     # 状態を保存する 
+    #     file_path = save_folder + f"{proc_id}.npy"
+    #     os.makedirs(os.path.dirname(file_path), exist_ok=True)  # ディレクトリが存在している場合もエラーが出ないようにディレクトリを作成
+    #     estimated_boards_ndarray = np.array(estimated_boards)
+    #     np.save(file_path, estimated_boards_ndarray)
 
-        proc_id += 1
-        pattern_num_by_worker += len(estimated_boards)
-        del estimated_boards
-        del estimated_boards_ndarray
+    #     proc_id += 1
+    #     pattern_num_by_worker += len(estimated_boards)
+    #     del estimated_boards
+    #     del estimated_boards_ndarray
+    
+    # return pattern_num_by_worker
+
+    # ----------方法2----------
+    """
+    使用できるメモリは32GB
+    通常のPC処理に4GB使用している 28GB使用可能
+    90%使用を目指すとして 25.2GB使用可能
+    16workerのため1worker当たり1.5GB使用可能
+    ndarrayで倍に増えるため情報の保存は0.75GB
+    0.75GB = 750MB = 750000Byte使用可能
+    """
+    estimated_boards = []
+    max_memory_bytes = 750000
+    proc_id = 0
+    for stone_pos in itertools.islice(itertools.combinations((NOT_CENTER_POS), generation), start_idx, end_idx):
+        stone_pos_with_center = list(stone_pos) + CENTER_POS
+        # 1) stone_pos_with_center をビットマスク化
+        mask_of_stone_pos_with_center = 0
+        for pos in stone_pos_with_center:
+            mask_of_stone_pos_with_center |= (1 << pos)
+        
+        if _judge_alone_stone(mask_of_stone_pos_with_center):
+            continue
+
+        estimated_boards.append(stone_pos_with_center)
+
+        if max_memory_bytes <= estimated_boards.__sizeof__():
+            # 状態を保存する 
+            file_path = save_folder + f"{proc_id}.npy"
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)  # ディレクトリが存在している場合もエラーが出ないようにディレクトリを作成
+            estimated_boards_ndarray = np.array(estimated_boards)
+            pattern_num_by_worker += len(estimated_boards)
+            del estimated_boards
+            estimated_boards = []
+            np.save(file_path, estimated_boards_ndarray)
+            del estimated_boards_ndarray
+            proc_id += 1
+
     
     return pattern_num_by_worker
 
@@ -335,15 +385,15 @@ def _judge_alone_stone(board: int) -> bool:
 
 if __name__ == "__main__":
     
-    for generation in range(7,9):
+    for generation in range(8,9):
         # debug用出力
         now_dt = datetime.now(tz=ZoneInfo("Asia/Tokyo"))
         now_str = f"{now_dt.year}/{now_dt.month}/{now_dt.day} {now_dt.hour}:{now_dt.minute}"
         print(f"世代={generation} start. {now_str}")
         
         # exec
-        calc_time, file_path, pattern_num = save_stone_pos(generation)  # 1. シングルプロセス
-        # calc_time, file_path, pattern_num = save_stone_pos_by_multiprocessing(generation)  # 2. マルチプロセス
+        # calc_time, file_path, pattern_num = save_stone_pos(generation)  # 1. シングルプロセス
+        calc_time, file_path, pattern_num = save_stone_pos_by_multiprocessing(generation)  # 2. マルチプロセス
 
         pos_total_num = read_json_n_c_r(60)[str(generation)]  # 60Cgenerationの件数を取得する
         remove_num = pos_total_num - pattern_num  # 除外数
