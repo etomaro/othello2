@@ -63,7 +63,7 @@ def save_stone_pos(generation: int) -> int:
         shutil.rmtree(base_folder)
     else:
         os.makedirs(base_folder)
-        
+
     result = []
     for stone_pos in combinations(NOT_CENTER_POS, generation):
 
@@ -335,7 +335,7 @@ def _judge_alone_stone(board: int) -> bool:
 
 if __name__ == "__main__":
     
-    for generation in range(1,7):
+    for generation in range(7,9):
         # debug用出力
         now_dt = datetime.now(tz=ZoneInfo("Asia/Tokyo"))
         now_str = f"{now_dt.year}/{now_dt.month}/{now_dt.day} {now_dt.hour}:{now_dt.minute}"
