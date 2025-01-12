@@ -225,6 +225,11 @@ def _process_by_worker(generation: int, save_folder: str, start_idx: int, end_id
         [世代=8]
         1000万: OOM発生
     [方法2]
+        750000B: メモリ4GB, 5分37秒
+        805306368B: 4分20秒
+          ※ 指定したメモリ量を一度も超えていない。メモリ使用量はおそらく4GB付近
+             おそらく一度にcombosをリストで作成していないため。リストで作成するとiterateし終わっても除外されずずっと残っている。
+             1つづつiterateする場合はリストとして持っていないためiterateすると除外されメモリ上昇が抑えられる
     """
     # ---------方法1---------
     # batch_num = 20000000  # 2000万(メモリ: 32GB, スワップ: 4.4GB使用)  ※なぜか6250万ではOOM発生
@@ -278,7 +283,7 @@ def _process_by_worker(generation: int, save_folder: str, start_idx: int, end_id
     0.75GB = 750MB = 750000Byte使用可能
     """
     estimated_boards = []
-    max_memory_bytes = 750000
+    max_memory_bytes = 805306368
     proc_id = 0
     for stone_pos in itertools.islice(itertools.combinations((NOT_CENTER_POS), generation), start_idx, end_idx):
         stone_pos_with_center = list(stone_pos) + CENTER_POS
@@ -298,13 +303,22 @@ def _process_by_worker(generation: int, save_folder: str, start_idx: int, end_id
             os.makedirs(os.path.dirname(file_path), exist_ok=True)  # ディレクトリが存在している場合もエラーが出ないようにディレクトリを作成
             estimated_boards_ndarray = np.array(estimated_boards)
             pattern_num_by_worker += len(estimated_boards)
+            print(f"状態保存. estimated_num: {len(estimated_boards)}. memory num={estimated_boards.__sizeof__()}")
             del estimated_boards
             estimated_boards = []
             np.save(file_path, estimated_boards_ndarray)
             del estimated_boards_ndarray
             proc_id += 1
-
     
+    # 状態を保存する 
+    file_path = save_folder + f"{proc_id}.npy"
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)  # ディレクトリが存在している場合もエラーが出ないようにディレクトリを作成
+    estimated_boards_ndarray = np.array(estimated_boards)
+    pattern_num_by_worker += len(estimated_boards)
+    del estimated_boards
+    np.save(file_path, estimated_boards_ndarray)
+    del estimated_boards_ndarray
+
     return pattern_num_by_worker
 
 def _wrapper_process_by_worker(args) -> int:
@@ -385,7 +399,7 @@ def _judge_alone_stone(board: int) -> bool:
 
 if __name__ == "__main__":
     
-    for generation in range(8,9):
+    for generation in range(7,8):
         # debug用出力
         now_dt = datetime.now(tz=ZoneInfo("Asia/Tokyo"))
         now_str = f"{now_dt.year}/{now_dt.month}/{now_dt.day} {now_dt.hour}:{now_dt.minute}"
