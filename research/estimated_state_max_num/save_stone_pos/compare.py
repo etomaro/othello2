@@ -214,6 +214,7 @@ def _process_by_worker(generation: int, worker_id: int, save_folder: str, start_
     方法1: 特定のバッチ単位でroopして処理する。特定のバッチ単位でnpy保存
         ※ 世代ごとにマスの選択の個数が1つづ大きくなるため世代ごとに値を指定する必要がある
     方法2: 1個ずつiterateで作成してroopする。指定したメモリ量を超えるとnpy保存
+    方法3: 1個ずつiterateで作成してroopする。指定した保存用数を超えるとnpy保存
 
     [方法1]
         [世代=7]
@@ -225,11 +226,27 @@ def _process_by_worker(generation: int, worker_id: int, save_folder: str, start_
         [世代=8]
         1000万: OOM発生
     [方法2]
+        [世代=7]
         750000B: メモリ4GB, 5分37秒
         805306368B: 4分20秒
-          ※ 指定したメモリ量を一度も超えていない。メモリ使用量はおそらく4GB付近
-             おそらく一度にcombosをリストで作成していないため。リストで作成するとiterateし終わっても除外されずずっと残っている。
-             1つづつiterateする場合はリストとして持っていないためiterateすると除外されメモリ上昇が抑えられる
+        ※ 指定したメモリ量を一度も超えていない。メモリ使用量はおそらく4GB付近
+            おそらく一度にcombosをリストで作成していないため。リストで作成するとiterateし終わっても除外されずずっと残っている。
+            1つづつiterateする場合はリストとして持っていないためiterateすると除外されメモリ上昇が抑えられる
+        
+        [世代=8]
+        30分5秒
+        debug出力追加後: 36分25秒
+
+        [世代=9]272000040: OOM発生
+    [方法3]
+        [世代=7]
+        1000万: 3分38秒: メモリ4GB
+
+        [世代=8]
+        1000万: 25分54秒: メモリ16GB
+
+        [世代=9]
+        1000万: 2h46m5s: メモリ20GB
     """
     # ---------方法1---------
     # batch_num = 20000000  # 2000万(メモリ: 32GB, スワップ: 4.4GB使用)  ※なぜか6250万ではOOM発生
@@ -273,29 +290,95 @@ def _process_by_worker(generation: int, worker_id: int, save_folder: str, start_
     
     # return pattern_num_by_worker
 
-    # ----------方法2----------
+    # # ----------方法2----------
+    # """
+    # 使用できるメモリは32GB
+    # 通常のPC処理に4GB使用している 28GB使用可能
+    # 90%使用を目指すとして 25.2GB使用可能
+    # 16workerのため1worker当たり1.5GB使用可能
+    # ndarrayで倍に増えるため情報の保存は0.75GB
+    # 0.75GB = 750MB = 750000KB = 750000000Byte使用可能
+
+    # __sizeof__が800000040Bでメモリ監視アプリでは約5GB増えた
+    # 5GB*16=80GBのため指定しているメモリ最大量は805306368は論外か
+    #  -> __sizeof__で使用しているメモリ量はシステム上で使用しているメモリ量を完全に含んでいない
+
+    # 28GB使用可能で
+    # 25.2GBで
+    # 1workerで1.5GBで
+    # """
+    # estimated_boards = []
+    # max_memory_bytes = 272000040  # システム上1.3GB使用の可能性あり
+    # proc_id = 0
+    # total_calc_num = end_idx - start_idx
+    # calc_done_num = 0
+    # for stone_pos in itertools.islice(itertools.combinations((NOT_CENTER_POS), generation), start_idx, end_idx):
+    #     stone_pos_with_center = list(stone_pos) + CENTER_POS
+    #     # 1) stone_pos_with_center をビットマスク化
+    #     mask_of_stone_pos_with_center = 0
+    #     for pos in stone_pos_with_center:
+    #         mask_of_stone_pos_with_center |= (1 << pos)
+  
+    #     if _judge_alone_stone(mask_of_stone_pos_with_center):
+    #         continue
+
+    #     estimated_boards.append(stone_pos_with_center)
+
+    #     calc_done_num += 1
+
+    #     if max_memory_bytes <= estimated_boards.__sizeof__():
+    #         # 状態を保存する
+    #         now_dt = datetime.now(tz=ZoneInfo("Asia/Tokyo"))
+    #         now_str = f"{now_dt.year}/{now_dt.month}/{now_dt.day} {now_dt.hour}:{now_dt.minute}"
+    #         print(f"[woker_id={worker_id}]save npy file start. dt={now_str}")
+
+    #         file_path = save_folder + f"{proc_id}.npy"
+    #         os.makedirs(os.path.dirname(file_path), exist_ok=True)  # ディレクトリが存在している場合もエラーが出ないようにディレクトリを作成
+    #         estimated_boards_ndarray = np.array(estimated_boards)
+    #         pattern_num_by_worker += len(estimated_boards)
+    #         print(f"状態保存. estimated_num: {len(estimated_boards)}. memory num={estimated_boards.__sizeof__()}")
+    #         del estimated_boards
+    #         estimated_boards = []
+    #         np.save(file_path, estimated_boards_ndarray)
+    #         del estimated_boards_ndarray
+    #         proc_id += 1
+
+    #         now_dt = datetime.now(tz=ZoneInfo("Asia/Tokyo"))
+    #         now_str = f"{now_dt.year}/{now_dt.month}/{now_dt.day} {now_dt.hour}:{now_dt.minute}"
+    #         print(f"[worker_id={worker_id}]save npy file end. dt={now_str}")
+    #         print(f"[worker_id={worker_id}]{(calc_done_num/total_calc_num)*100}% calc done")
+
+    # # 状態を保存する 
+    # now_dt = datetime.now(tz=ZoneInfo("Asia/Tokyo"))
+    # now_str = f"{now_dt.year}/{now_dt.month}/{now_dt.day} {now_dt.hour}:{now_dt.minute}"
+    # print(f"[worker_id={worker_id}]save npy file start. dt={now_str}")
+
+    # file_path = save_folder + f"{proc_id}.npy"
+    # os.makedirs(os.path.dirname(file_path), exist_ok=True)  # ディレクトリが存在している場合もエラーが出ないようにディレクトリを作成
+    # estimated_boards_ndarray = np.array(estimated_boards)
+    # pattern_num_by_worker += len(estimated_boards)
+    # del estimated_boards
+    # np.save(file_path, estimated_boards_ndarray)
+    # del estimated_boards_ndarray
+
+    # now_dt = datetime.now(tz=ZoneInfo("Asia/Tokyo"))
+    # now_str = f"{now_dt.year}/{now_dt.month}/{now_dt.day} {now_dt.hour}:{now_dt.minute}"
+    # print(f"[worker_id={worker_id}]save npy file end. dt={now_str}")
+    # print(f"[worker_id={worker_id}]calc done.")
+
+    # return pattern_num_by_worker
+
+    # ----------方法3----------
     """
-    使用できるメモリは32GB
-    通常のPC処理に4GB使用している 28GB使用可能
-    90%使用を目指すとして 25.2GB使用可能
-    16workerのため1worker当たり1.5GB使用可能
-    ndarrayで倍に増えるため情報の保存は0.75GB
-    0.75GB = 750MB = 750000KB = 750000000Byte使用可能
-
-    __sizeof__が800000040Bでメモリ監視アプリでは約5GB増えた
-    5GB*16=80GBのため指定しているメモリ最大量は805306368は論外か
-     -> __sizeof__で使用しているメモリ量はシステム上で使用しているメモリ量を完全に含んでいない
-
-    28GB使用可能で
-    25.2GBで
-    1workerで1.5GBで
     """
     estimated_boards = []
-    max_memory_bytes = 272000040  # システム上1.3GB使用の可能性あり
+    batch_num = 10000000  # 1000万ずつ
     proc_id = 0
     total_calc_num = end_idx - start_idx
     calc_done_num = 0
+    proc_num = 0
     for stone_pos in itertools.islice(itertools.combinations((NOT_CENTER_POS), generation), start_idx, end_idx):
+        proc_num += 1
         stone_pos_with_center = list(stone_pos) + CENTER_POS
         # 1) stone_pos_with_center をビットマスク化
         mask_of_stone_pos_with_center = 0
@@ -309,7 +392,7 @@ def _process_by_worker(generation: int, worker_id: int, save_folder: str, start_
 
         calc_done_num += 1
 
-        if max_memory_bytes <= estimated_boards.__sizeof__():
+        if batch_num <= calc_done_num:
             # 状態を保存する
             now_dt = datetime.now(tz=ZoneInfo("Asia/Tokyo"))
             now_str = f"{now_dt.year}/{now_dt.month}/{now_dt.day} {now_dt.hour}:{now_dt.minute}"
@@ -319,18 +402,18 @@ def _process_by_worker(generation: int, worker_id: int, save_folder: str, start_
             os.makedirs(os.path.dirname(file_path), exist_ok=True)  # ディレクトリが存在している場合もエラーが出ないようにディレクトリを作成
             estimated_boards_ndarray = np.array(estimated_boards)
             pattern_num_by_worker += len(estimated_boards)
-            print(f"状態保存. estimated_num: {len(estimated_boards)}. memory num={estimated_boards.__sizeof__()}")
             del estimated_boards
             estimated_boards = []
             np.save(file_path, estimated_boards_ndarray)
             del estimated_boards_ndarray
             proc_id += 1
+            calc_done_num = 0
 
             now_dt = datetime.now(tz=ZoneInfo("Asia/Tokyo"))
             now_str = f"{now_dt.year}/{now_dt.month}/{now_dt.day} {now_dt.hour}:{now_dt.minute}"
             print(f"[worker_id={worker_id}]save npy file end. dt={now_str}")
-            print(f"[worker_id={worker_id}]{(calc_done_num/total_calc_num)*100}% calc done")
-    
+            print(f"[worker_id={worker_id}]{int(proc_num/total_calc_num)*100}% calc done")
+
     # 状態を保存する 
     now_dt = datetime.now(tz=ZoneInfo("Asia/Tokyo"))
     now_str = f"{now_dt.year}/{now_dt.month}/{now_dt.day} {now_dt.hour}:{now_dt.minute}"
@@ -350,6 +433,7 @@ def _process_by_worker(generation: int, worker_id: int, save_folder: str, start_
     print(f"[worker_id={worker_id}]calc done.")
 
     return pattern_num_by_worker
+
 
 def _wrapper_process_by_worker(args) -> int:
     pattern_num_by_worker = _process_by_worker(*args)
@@ -429,7 +513,7 @@ def _judge_alone_stone(board: int) -> bool:
 
 if __name__ == "__main__":
     
-    for generation in range(8, 20):
+    for generation in range(9, 10):
         # debug用出力
         now_dt = datetime.now(tz=ZoneInfo("Asia/Tokyo"))
         now_str = f"{now_dt.year}/{now_dt.month}/{now_dt.day} {now_dt.hour}:{now_dt.minute}"

@@ -1,0 +1,10 @@
+・システムモニターはログを保存されていないため過去の状態を見ることができない。
+   「sar」を使用
+    sudo apt-get update
+    sudo apt-get install sysstat
+
+    vi /etc/default/sysstat などで ENABLED="true" にし、sysstat サービスを有効化
+    systemctl enable sysstat && systemctl start sysstat
+    しばらく放置しておくと、/var/log/sa/ 以下に日次ログがたまっていく
+    sar -u や sar -r などのコマンドでデータを後から閲覧
+
