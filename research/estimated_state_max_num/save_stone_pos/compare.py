@@ -31,6 +31,7 @@ from common.n_C_r.json_utils import read_json_n_c_r
 
 # 中心4マスの位置
 CENTER_POS = [27, 28, 35, 36]
+CENTER_POS_TUPLE = (27, 28, 35, 36)
 NOT_CENTER_POS = [
     0, 1, 2, 3, 4, 5, 6, 7,
     8, 9, 10, 11, 12, 13, 14, 15,
@@ -170,6 +171,45 @@ def save_stone_pos_by_multiprocessing(generation: int) -> int:
     
     return time.time() - start_time, file_path, pattern_num
 
+def _encode_tuple(tpl: tuple[int]) -> int:
+    """
+    ビットパッキング
+    tupleをビットに変換する
+
+    若い要素から下位ビットに詰めていく
+    ※ ただし順番はどうでもいい
+
+    要素の値は0-63のため6bitで表現できる
+    最終的なパッキングされた値はlen(tpl)*6bit
+
+    """
+    val = 0
+    shift = 0
+    for i in tpl:
+        val |= (i & 0x3f) << shift  # 0x3f=0b111111
+        shift += 6
+    return val
+
+def _decode_int(val: int, generation: int) -> list[int]:
+    """
+    _encode_tupleでビットパッキングした値をlistにデコード
+    
+    下位ビットから若い要素に詰めていく
+
+    args:
+      val: ビットパッキングされた値
+      generation: 世代
+        valのデコードした要素数はgeneration+4
+    """
+    length = generation + 4
+    shift = 0
+    result = []
+    for _ in range(length):
+        x = (val >> shift) & 0x3f 
+        result.append(x)
+        shift += 6
+    return result
+
 def _get_pos_by_range(generation: int, start_idx: int, end_idx: int):
     """
     指定した範囲で選択マスをyieldする
@@ -215,6 +255,13 @@ def _process_by_worker(generation: int, worker_id: int, save_folder: str, start_
         ※ 世代ごとにマスの選択の個数が1つづ大きくなるため世代ごとに値を指定する必要がある
     方法2: 1個ずつiterateで作成してroopする。指定したメモリ量を超えるとnpy保存
     方法3: 1個ずつiterateで作成してroopする。指定した保存用数を超えるとnpy保存
+    方法4: ビットパッキング
+           1個ずつiterateで作成してroopする。指定した保存用数を超えるとnpy保存
+           ただし、状態の保持の仕方をlist in listではなくbit in listにしてメモリ節約
+           メモリ節約により速度の向上をはかる
+    方法5: ビットコンビネーション
+           選択マスをtupleで生成してループ内でビットに変換している(while)
+           これに時間がかかるため、そもそもビットで選択マスを生成する
 
     [方法1]
         [世代=7]
@@ -247,6 +294,13 @@ def _process_by_worker(generation: int, worker_id: int, save_folder: str, start_
 
         [世代=9]
         1000万: 2h46m5s: メモリ20GB
+    
+    [方法4]
+        [世代=7]
+        1000万: 5分41秒 メモリ3.4GB
+
+        [世代=8]
+        1000万: 
     """
     # ---------方法1---------
     # batch_num = 20000000  # 2000万(メモリ: 32GB, スワップ: 4.4GB使用)  ※なぜか6250万ではOOM発生
@@ -369,8 +423,70 @@ def _process_by_worker(generation: int, worker_id: int, save_folder: str, start_
     # return pattern_num_by_worker
 
     # ----------方法3----------
-    """
-    """
+    # estimated_boards = []
+    # batch_num = 10000000  # 1000万ずつ
+    # proc_id = 0
+    # total_calc_num = end_idx - start_idx
+    # calc_done_num = 0
+    # proc_num = 0
+    # for stone_pos in itertools.islice(itertools.combinations((NOT_CENTER_POS), generation), start_idx, end_idx):
+    #     proc_num += 1
+    #     stone_pos_with_center = list(stone_pos) + CENTER_POS
+    #     # 1) stone_pos_with_center をビットマスク化
+    #     mask_of_stone_pos_with_center = 0
+    #     for pos in stone_pos_with_center:
+    #         mask_of_stone_pos_with_center |= (1 << pos)
+  
+    #     if _judge_alone_stone(mask_of_stone_pos_with_center):
+    #         continue
+
+    #     estimated_boards.append(stone_pos_with_center)
+
+    #     calc_done_num += 1
+
+    #     if batch_num <= calc_done_num:
+    #         # 状態を保存する
+    #         now_dt = datetime.now(tz=ZoneInfo("Asia/Tokyo"))
+    #         now_str = f"{now_dt.year}/{now_dt.month}/{now_dt.day} {now_dt.hour}:{now_dt.minute}"
+    #         print(f"[woker_id={worker_id}]save npy file start. dt={now_str}")
+
+    #         file_path = save_folder + f"{proc_id}.npy"
+    #         os.makedirs(os.path.dirname(file_path), exist_ok=True)  # ディレクトリが存在している場合もエラーが出ないようにディレクトリを作成
+    #         estimated_boards_ndarray = np.array(estimated_boards)
+    #         pattern_num_by_worker += len(estimated_boards)
+    #         del estimated_boards
+    #         estimated_boards = []
+    #         np.save(file_path, estimated_boards_ndarray)
+    #         del estimated_boards_ndarray
+    #         proc_id += 1
+    #         calc_done_num = 0
+
+    #         now_dt = datetime.now(tz=ZoneInfo("Asia/Tokyo"))
+    #         now_str = f"{now_dt.year}/{now_dt.month}/{now_dt.day} {now_dt.hour}:{now_dt.minute}"
+    #         print(f"[worker_id={worker_id}]save npy file end. dt={now_str}")
+    #         print(f"[worker_id={worker_id}]{int(proc_num/total_calc_num)*100}% calc done")
+
+    # # 状態を保存する 
+    # now_dt = datetime.now(tz=ZoneInfo("Asia/Tokyo"))
+    # now_str = f"{now_dt.year}/{now_dt.month}/{now_dt.day} {now_dt.hour}:{now_dt.minute}"
+    # print(f"[worker_id={worker_id}]save npy file start. dt={now_str}")
+
+    # file_path = save_folder + f"{proc_id}.npy"
+    # os.makedirs(os.path.dirname(file_path), exist_ok=True)  # ディレクトリが存在している場合もエラーが出ないようにディレクトリを作成
+    # estimated_boards_ndarray = np.array(estimated_boards)
+    # pattern_num_by_worker += len(estimated_boards)
+    # del estimated_boards
+    # np.save(file_path, estimated_boards_ndarray)
+    # del estimated_boards_ndarray
+
+    # now_dt = datetime.now(tz=ZoneInfo("Asia/Tokyo"))
+    # now_str = f"{now_dt.year}/{now_dt.month}/{now_dt.day} {now_dt.hour}:{now_dt.minute}"
+    # print(f"[worker_id={worker_id}]save npy file end. dt={now_str}")
+    # print(f"[worker_id={worker_id}]calc done.")
+
+    # return pattern_num_by_worker
+
+    # ----------方法4----------
     estimated_boards = []
     batch_num = 10000000  # 1000万ずつ
     proc_id = 0
@@ -379,7 +495,7 @@ def _process_by_worker(generation: int, worker_id: int, save_folder: str, start_
     proc_num = 0
     for stone_pos in itertools.islice(itertools.combinations((NOT_CENTER_POS), generation), start_idx, end_idx):
         proc_num += 1
-        stone_pos_with_center = list(stone_pos) + CENTER_POS
+        stone_pos_with_center = stone_pos + CENTER_POS_TUPLE
         # 1) stone_pos_with_center をビットマスク化
         mask_of_stone_pos_with_center = 0
         for pos in stone_pos_with_center:
@@ -388,7 +504,7 @@ def _process_by_worker(generation: int, worker_id: int, save_folder: str, start_
         if _judge_alone_stone(mask_of_stone_pos_with_center):
             continue
 
-        estimated_boards.append(stone_pos_with_center)
+        estimated_boards.append(_encode_tuple(stone_pos_with_center))  # bit packing
 
         calc_done_num += 1
 
@@ -513,7 +629,7 @@ def _judge_alone_stone(board: int) -> bool:
 
 if __name__ == "__main__":
     
-    for generation in range(9, 10):
+    for generation in range(7, 8):
         # debug用出力
         now_dt = datetime.now(tz=ZoneInfo("Asia/Tokyo"))
         now_str = f"{now_dt.year}/{now_dt.month}/{now_dt.day} {now_dt.hour}:{now_dt.minute}"
