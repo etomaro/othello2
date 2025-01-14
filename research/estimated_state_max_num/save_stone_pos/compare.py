@@ -296,7 +296,7 @@ def _process_by_worker(generation: int, worker_id: int, save_folder: str, start_
         1000万: 2h46m5s: メモリ20GB
 
         [世代=10]
-        500万: メモリ22GB
+        500万: 18h34m メモリ22GB
     
     [方法4]
         [世代=7]
