@@ -21,6 +21,10 @@
 
 ---小技---
 4.1 奇数・偶数判定
+4.2 最も下位の1ビットを取り出す(x & -x)
+
+---大技---
+5.1 固定長かつで1の数が固定のすべてのパターンを取得する(gosper's hack)
 
 """
 
@@ -199,3 +203,51 @@ def _get_judge_odd_even(value: int) -> int:
         return True 
     else:
         return False
+    
+def _get_underest_one(value: int) -> int:
+    """
+    4.2 最も下位の1ビットを取り出す(x & -x)
+    
+    [ex]
+    x = 0b0110
+    result = 0b10
+
+    ロジック
+    x: 0b00..0110
+    -x: 0b11..001 + 0b00..1 = 0b11..010
+    result: 0b010
+    """
+    return value & -value
+
+def _get_patterns_by_gospers_hack(r: int):
+    """
+    5.1 固定長(b4bit)かつで1の数が固定のすべてのパターンを取得する(gosper's hack)
+
+    args:
+        n: bit長でありnCrのn
+        r: nCrのr
+    """
+    MASK_64 = (1 << 64) - 1  # 0xFFFF_FFFF_FFFF_FFFF
+
+    def next_combination_64(x: int) -> int:
+        # まず 64ビットとして x をマスクしておく
+        x &= MASK_64
+
+        u = x & -x
+        v = (x + u) & MASK_64
+        if v == 0:
+            return 0
+        
+        # 下記の部分も適宜マスク
+        return ((((v ^ x) & MASK_64) >> 2) // u) | v
+
+    if r == 0:
+        yield 0
+        return
+    if r > 64:
+        return
+
+    bitmask = ((1 << r) - 1) & MASK_64
+    while bitmask != 0:
+        yield bitmask
+        bitmask = next_combination_64(bitmask)
