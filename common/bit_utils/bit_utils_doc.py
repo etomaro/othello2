@@ -221,7 +221,7 @@ def _get_underest_one(value: int) -> int:
 
 def _get_patterns_by_gospers_hack(r: int):
     """
-    5.1 固定長(b4bit)かつで1の数が固定のすべてのパターンを取得する(gosper's hack)
+    5.1 固定長(64bit)かつで1の数が固定のすべてのパターンを取得する(gosper's hack)
 
     args:
         n: bit長でありnCrのn
