@@ -1,4 +1,5 @@
 import csv
+import os
 
 
 def _get_patterns_by_gospers_hack(r: int):
@@ -57,16 +58,14 @@ def _get_patterns_by_gospers_hack(r: int):
     bits = ((1 << r) - 1) & MASK_64
     yield ["", "", "", "", "", "", "", "", "", bits]  # 最初の戻り値
     bits = next_combination_64(bits)
-    while bits != 0:
+    while bits[-1] != 0:
         yield bits
-        bits = next_combination_64(bits)
+        bits = next_combination_64(bits[-1])
 
 if __name__ == "__main__":
 
     # Gosper's hack計算過程をCSVに出力する(64C3)
     # 最初の5つと最後の4つを出力する。64C3の個数は41664
-    count = 0
-    datas = {}
     keys = [
         "1. 計算前の値", 
         "2. x &= MASK_64",
@@ -80,8 +79,40 @@ if __name__ == "__main__":
         "10. ((((v ^ x) & MASK_64) >> 2) // u) | v"
     ]
     headers = [
+        "計算過程",
         "1つ目",
-        "2つ目"
+        "2つ目",
+        "3つ目",
+        "4つ目",
+        "41662つ目",
+        "41663つ目",
+        "41664つ目",
     ]
     all_patterns = list(_get_patterns_by_gospers_hack(3))
+
+    # create write datas
+    write_datas = []
+    for i in range(10):
+        write_datas.append(
+            [
+                keys[i],
+                format(all_patterns[0][i], "064b") if all_patterns[0][i] != "" else "",  # 1つ目の戻り値
+                format(all_patterns[1][i], "064b") if all_patterns[1][i] != "" else "",  # 2つ目の戻り値
+                format(all_patterns[2][i], "064b") if all_patterns[2][i] != "" else "",  # 3つ目の戻り値
+                format(all_patterns[3][i], "064b") if all_patterns[3][i] != "" else "",  # 4つ目の戻り値
+                format(all_patterns[41662-1][i], "064b") if all_patterns[41662-1][i] != "" else "",  # 41662つ目の戻り値
+                format(all_patterns[41663-1][i], "064b") if all_patterns[41663-1][i] != "" else "",  # 41663つ目の戻り値
+                format(all_patterns[41664-1][i], "064b") if all_patterns[41664-1][i] != "" else "",  # 41664つ目の戻り値
+            ]
+        )        
+
+    # write
+    folder_name = os.path.dirname(__file__)
+    file_name = "gosper_hack_calculate_process.csv"
+    file_path = folder_name + "/" + file_name
+    with open(file_path, "w") as f:
+        writer = csv.writer(f)
+        writer.writerow(headers)
+        writer.writerows(write_datas)
+
     

@@ -222,17 +222,6 @@ def _get_underest_one(value: int) -> int:
 def _get_patterns_by_gospers_hack(r: int):
     """
     5.1 固定長(b4bit)かつで1の数が固定のすべてのパターンを取得する(gosper's hack)
-    
-    1. 計算前のvalue,
-            2. x &= MASK_64,
-            3. u = x & -x,
-            4. x + u,
-            5. v = (x + u) & MASK_64,
-            6. v ^ x,
-            7. (v ^ x) & MASK_64,
-            8. ((v ^ x) & MASK_64) >> 2,
-            9. (((v ^ x) & MASK_64) >> 2) // u,
-            10. ((((v ^ x) & MASK_64) >> 2) // u) | v
 
     args:
         n: bit長でありnCrのn
