@@ -84,7 +84,7 @@ def _get_bit_reverse_limited(value: int, mask_ndigit) -> int:
 
 def _get_negative_value(value: int) -> int:
     """
-    4. -x
+    2. -xとは
     
     コンピューターで負の値を表現する方法を考える
     どの方法だとしてもnbit固定長の場合表現できる絶対値の個数は2^(n-1)個
@@ -107,147 +107,10 @@ def _get_negative_value(value: int) -> int:
         デメリット: 0000 0000と1111 1111がともにゼロになる(0と-0が混在する)
         
     3. 2の補数
-        ビット反転+1の方法で負の値を表現する(=1の補数に1を加算したもの)
+        ビット反転した後1を加算する方法で負の値を表現する(=1の補数に1を加算したもの)
         common/bit_utils/2の補数.xlsxに記載
-
-        定義: -x = ~x + 1
-
-        メリット: 負の値を使用しても加算ができる
       
     args:
       value: 値
     """
-    return ~value + 1
-  
-def _get_and(x: int, y: int) -> int:
-    """
-    2.1 &
-
-    ※ andは使用できない
-
-    負の値の検討
-    -5: 0b111..011
-    -4: 0b111..100
-    
-    -5と-4を&すると「-8」になる
-
-    -8: 0b111..1000
-    -> 確かにandすると-8になる
-    """
-    return x & y 
-
-def _get_or(x: int, y: int) -> int:
-    """
-    2.2 |
-
-    ※ orは使用できない
-
-    負の値の検討
-    -5: 0b111..011
-    -4: 0b111..100
-
-    -5と-4をorすると5になる
-
-    -1: 0b111..111
-    -> orすると確かに-1になる
-    """
-    return x | y 
-
-def _get_bit_count(value: int) -> int:
-    """
-    2.6 1の数をカウント
-
-    python3.10以上だとbit_count()が使用できる
-    未満だとbin(x).count("1")が使用できるが遅い
-    """
-    return value.bit_count()
-
-def _get_xor(x: int, y: int) -> int:
-    """
-    3. xor(^)
-
-    どちらのみが1を1にする
-    """
-    return x ^ y
-
-def _get_str_without_0b(value: int) -> int:
-    """
-    3.1 0bをつけずに出力
-    """
-    return format(value, "b")
-
-def _get_str_without_0b_limited(value: int, digit: int) -> int:
-    """
-    3.2 固定長のbitとして0bをつけずに出力(0で置換する)
-
-    [ex]
-    x = 0b1010
-    format(x, "08b"): "00001010"
-
-    args:
-      value: 値
-      digit: 何桁の固定長とするか
-      rep_value: 何の値で埋めるか
-    """
-    return format(value, f"0{digit}b")
-
-def _get_judge_odd_even(value: int) -> int:
-    """
-    4.1 奇数・偶数判定
-
-    奇数の場合、最下位ビットは1
-    偶数の場合、最下位ビットは0
-    を利用して判定
-    """
-    if value & 0b1:
-        return True 
-    else:
-        return False
-    
-def _get_underest_one(value: int) -> int:
-    """
-    4.2 最も下位の1ビットを取り出す(x & -x)
-    
-    [ex]
-    x = 0b0110
-    result = 0b10
-
-    ロジック
-    x: 0b00..0110
-    -x: 0b11..001 + 0b00..1 = 0b11..010
-    result: 0b010
-    """
-    return value & -value
-
-def _get_patterns_by_gospers_hack(r: int):
-    """
-    5.1 固定長(b4bit)かつで1の数が固定のすべてのパターンを取得する(gosper's hack)
-
-    args:
-        n: bit長でありnCrのn
-        r: nCrのr
-    """
-    MASK_64 = (1 << 64) - 1  # 0xFFFF_FFFF_FFFF_FFFF
-
-    def next_combination_64(x: int) -> int:
-        # まず 64ビットとして x をマスクしておく
-        x &= MASK_64
-
-        u = x & -x
-        v = (x + u) & MASK_64
-        if v == 0:
-            return 0
-        
-        # 下記の部分も適宜マスク
-        return ((((v ^ x) & MASK_64) >> 2) // u) | v
-
-    if r == 0:
-        yield 0
-        return
-    if r > 64:
-        return
-
-    bitmask = ((1 << r) - 1) & MASK_64
-    while bitmask != 0:
-        yield bitmask
-        bitmask = next_combination_64(bitmask)
+    pass 
