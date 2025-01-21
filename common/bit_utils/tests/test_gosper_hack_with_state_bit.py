@@ -1,8 +1,10 @@
 import unittest
 import itertools
+import time
 
 from common.n_C_r.json_utils import read_json_n_c_r
 from common.bit_utils.gosper_hack_with_state_bit import get_60_c_r_by_gosper_hack_with_state_bit
+from common.dt_utils import sec_to_str
 
 
 CENTER_POS = [27, 28, 35, 36]
@@ -27,7 +29,7 @@ class TestGosperHackWithStateBit(unittest.TestCase):
     
     def setUp(self):
         # print("setup")
-        self._60_c_n = read_json_n_c_r(60)
+        self._60_c_r = read_json_n_c_r(60)
     
     def tearDown(self) -> None:
         # print("tearDown")
@@ -57,14 +59,12 @@ class TestGosperHackWithStateBit(unittest.TestCase):
     [テスト]
     1. 件数テスト(※時間がかかるため60C(1-5)と60C(56-60)
     2. 既存の60Cgenerationを求めるものと計算結果が同じか
-    3. 既存の60Cgenerationを求めるものとの速度調査
     """
     def test_result_count(self):
         # 1. 件数テスト(※時間がかかるため60C(1-5)と60C(56-60)
-        # 60C1
         for r in [1,2,3,4,5,56,57,58,59,60]:
             result = len(list(get_60_c_r_by_gosper_hack_with_state_bit(r)))
-            exp = self._60_c_n[str(r)]
+            exp = self._60_c_r[str(r)]
             self.assertEqual(exp, result)
     
     def test_compare_new_old(self):

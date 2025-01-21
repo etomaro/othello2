@@ -48,8 +48,7 @@ def get_60_c_r_by_gosper_hack_with_state_bit(r: int):
         b3 =      x と index26~0とのマスク
     (2.3. ), (2.4. )
         ※ 省略
-
-    
+ 
     args:
       r: nCrのr, generationの値と同値
     """
@@ -76,7 +75,6 @@ def get_60_c_r_by_gosper_hack_with_state_bit(r: int):
         a3 = x & 0x0000000007ffffff  # index26~0
         z = 0x0000001818000000  # index=27,28,35,36のマスク
         return a1 | a2 | a3 | z
-        
 
     # 高速化のためコメントアウト。r=0 or 64より上の値で呼ばないこと
     # if r == 0:
