@@ -1,6 +1,6 @@
 
 
-def _get_60_c_r_by_gosper_hack_with_state_bit(r: int):
+def get_60_c_r_by_gosper_hack_with_state_bit(r: int):
     """
     Gosper's Hackの応用でGosper's Hackで求めたそれぞれに指定されたビット長に変換かつ、固定のビットを立てる
 
@@ -37,12 +37,11 @@ def _get_60_c_r_by_gosper_hack_with_state_bit(r: int):
 
     [ex]
     (1.  )0000,0000,0000,0001,0000,0000,0001,0000,0001,0000,0001,0000,0000,0000,0000,0000
-    ※ 下記移行インデックスは63C3のインデックスを指す
-    (2.1.)
-        a1 = index59~33
-        a2 = index32~27
-        a3 = index26~0
     ※ 下記移行インデックスはオセロのインデックスを指す
+    (2.1.)
+        a1 = index63~37
+        a2 = index34~29
+        a3 = index26~0
     (2.2.)
         b1 = (x<<4) と index63~37とのマスク
         b2 = (x<<2) と index34~29とのマスク
@@ -72,8 +71,8 @@ def _get_60_c_r_by_gosper_hack_with_state_bit(r: int):
         """
         2. 求めたパターンをそれぞれ64ビットに変換してindex=27,28,35,36を立てる
         """
-        a1 = (x<<4) & 0xffffffe000000000  # index59~33
-        a2 = (x<<2) & 0xfffffff7e0000000  # index32~27
+        a1 = (x<<4) & 0xffffffe000000000  # index63~37
+        a2 = (x<<2) & 0x00000007e0000000  # index34~29
         a3 = x & 0x0000000007ffffff  # index26~0
         z = 0x0000001818000000  # index=27,28,35,36のマスク
         return a1 | a2 | a3 | z
