@@ -61,7 +61,8 @@ def test_speed(r: int):
     print(f"old calc time: {int(old_calc_time)}: {sec_to_str(old_calc_time)}")
 
     folder_name = os.path.dirname(__file__)
-    file_name = f"speed_test_60_c_{r}.csv"
+    # file_name = f"speed_test_60_c_{r}.csv"
+    file_name = f"speed_test_60_c_{r}_pypy.csv"  # pypyで実行
     file_path = folder_name + "/" + file_name
     with open(file_path, "w") as f:
         writer = csv.writer(f)
@@ -77,5 +78,6 @@ def test_speed(r: int):
         writer.writerows(datas)
 
 if __name__ == "__main__":
+    # pythonかpypy3で実行するか考え、ファイル名を適切に変更する
     r = 8
     test_speed(r)

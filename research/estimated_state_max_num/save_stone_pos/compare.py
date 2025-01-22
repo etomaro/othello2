@@ -633,7 +633,7 @@ def _judge_alone_stone(board: int) -> bool:
 
 if __name__ == "__main__":
     
-    for generation in range(10, 11):
+    for generation in range(7, 8):
         # debug用出力
         now_dt = datetime.now(tz=ZoneInfo("Asia/Tokyo"))
         now_str = f"{now_dt.year}/{now_dt.month}/{now_dt.day} {now_dt.hour}:{now_dt.minute}"
