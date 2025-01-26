@@ -60,7 +60,7 @@ def test_speed(r: int):
     print(f"new calc time: {int(new_calc_time)}: {sec_to_str(new_calc_time)}")
     print(f"old calc time: {int(old_calc_time)}: {sec_to_str(old_calc_time)}")
 
-    folder_name = os.path.dirname(__file__)
+    folder_name = os.path.dirname(__file__) + "/speed_test_report"
     # file_name = f"speed_test_60_c_{r}.csv"
     file_name = f"speed_test_60_c_{r}_pypy.csv"  # pypyで実行
     file_path = folder_name + "/" + file_name

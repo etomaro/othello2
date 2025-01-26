@@ -107,7 +107,7 @@ if __name__ == "__main__":
         )        
 
     # write
-    folder_name = os.path.dirname(__file__)
+    folder_name = os.path.dirname(__file__)  + "gosper_hack_calculate_process_report"
     file_name = "gosper_hack_calculate_process.csv"
     file_path = folder_name + "/" + file_name
     with open(file_path, "w") as f:
@@ -120,7 +120,6 @@ if __name__ == "__main__":
     for i, value in enumerate(all_patterns):
         write_datas.append([i+1, format(all_patterns[i][-1], "064b")])
 
-    folder_name = os.path.dirname(__file__)
     file_name = "gosper_hack_calculate_list.csv"
     file_path = folder_name + "/" + file_name
     with open(file_path, "w") as f:
