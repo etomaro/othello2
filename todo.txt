@@ -45,6 +45,17 @@
 ・各wokerごとに処理の個数は同じだが計算量が違うため、処理が完了してprocessを再投入する仕組みが必要かも
 []gosper hackの証明
 
+
+[]gosper's hackとunrankingの組み合わせによりnCrのビットパターンをベスト高速化を実現
+  []unrankingの実装
+  []unrakingのテスト
+  []unrakingのスピードテスト
+  []unrankingとgosper'shackの実装
+  []unrakingとgosper's hackのテスト
+  []unrankingとgosper's hackのスピードテスト
+  []一連の流れtipsをテキスト化
+
+
 -------方法の違いによる世代ごとのパターン計算完了度-------
 ・方法1
   1,2,3,4,5,6,7,8
